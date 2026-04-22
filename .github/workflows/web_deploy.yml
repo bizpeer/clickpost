@@ -2,10 +2,10 @@ name: Web Deploy (Next.js)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ mai
     paths:
       - 'apps/web/**'
-            - '.github/workflows/web_deploy.yml'
+          - '.github/workflows/web_deploy.yml'
   pull_request:
     branches: [ main ]
     paths:
