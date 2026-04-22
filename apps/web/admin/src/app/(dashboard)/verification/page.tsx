@@ -11,7 +11,7 @@ import {
   Filter,
   Activity,
   History,
-  FileSearch
+  FileSearch, XCircle
 } from 'lucide-react';
 
 const verificationLogs = [
