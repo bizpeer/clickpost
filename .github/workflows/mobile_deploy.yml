@@ -25,10 +25,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: apps/mobile/clickpost/package-lock.json
 
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-cache: true
+          token: ${{ secrets.EXPO_TOKEN }}
+
       - name: Install dependencies
         working-directory: apps/mobile/clickpost
         run: npm install
 
       - name: Expo Validate & Build (Dry Run)
         working-directory: apps/mobile/clickpost
-        run: npx expo lint || true # Lint if available, otherwise continue
+        run: npx expo lint || true
