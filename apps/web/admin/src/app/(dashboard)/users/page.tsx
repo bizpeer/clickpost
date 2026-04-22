@@ -11,7 +11,7 @@ import {
   Filter,
   CheckCircle2,
   XCircle,
-  Hash
+  Hash, Plus
 } from 'lucide-react';
 
 const users = [
