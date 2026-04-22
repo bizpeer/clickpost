@@ -2,7 +2,7 @@ import React from 'react';
 import KpiCard from '@/components/admin/KpiCard';
 import { 
   DollarSign, 
-  TrendUp, 
+  TrendingUp, 
   Users, 
   Video, 
   Zap, 
