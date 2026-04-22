@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Next.js
+.next/
+out/
+build/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native folders (generated)
+/apps/mobile/clickpost/ios
+/apps/mobile/clickpost/android
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Debug & Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+logs/
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
