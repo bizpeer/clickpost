@@ -21,6 +21,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://trucxonuhorjvjtkcywd.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_I4A5OYfb7C6qw6ik96uMIw_5wBg_xVk
     
     steps:
       - name: Checkout repository
