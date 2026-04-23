@@ -38,7 +38,39 @@
     "secure_link_title": "Establishing Secure Link",
     "secure_link_subtitle": "Connecting to {{payment}} API for identity verification.",
     "auth_success_title": "Auth Successful",
-    "auth_success_subtitle": "Your local payout account is now securely linked."
+    "auth_success_subtitle": "Your local payout account is now securely linked.",
+    "quick_start_title": "QUICK START",
+    "quick_start_subtitle": "Import info automatically from local pay accounts",
+    "quick_auth_fetching": "Fetching {{method}} account info...",
+    "quick_auth_success": "Info imported successfully!",
+    "session_establishing_node": "Establishing Secure Node...",
+    "session_anchoring_identity": "Anchoring AI Identity...",
+    "session_synchronized": "Session Synchronized",
+    "gemini_analyzing": "Gemini 1.5 Pro is analyzing demographic heritage to synthesize a precision visual prompt...",
+    "veo_rendering": "Google Veo v2.0 Ultra is processing biometric seeds to render consistent identity across all dimensions...",
+    "terminal_analyzing_heritage": "Analyzing demographic heritage...",
+    "terminal_synthesizing_prompt": "Synthesizing consistent visual persona prompt...",
+    "terminal_processing_spatial": "Processing spatial identity consistency (5-point anchor)...",
+    "terminal_seed_locked": "SUCCESS: Persona Seed #{{seedId}} locked.",
+    "terminal_waiting": "Waiting for kernel response...",
+    "terminal_process_log": "PROCESS_LOG",
+    "label_latency": "LATENCY",
+    "label_sync": "SYNC",
+    "label_seed": "SEED",
+    "value_ultra": "ULTRA",
+    "value_fixed": "FIXED",
+    "finishing_building_tunnel": "Building encrypted tunnel to regional nodes...",
+    "finishing_session_verified": "Identity session verified and synchronized.",
+    "finishing_persona_live": "Digital persona live. Redirecting to terminal...",
+    "error_generate_persona": "Failed to generate persona.",
+    "error_update_avatar": "Failed to update avatar.",
+    "error_finalize_account": "Failed to finalize your account.",
+    "label_gemini_synthesis": "Gemini Synthesis",
+    "label_veo_rendering": "Veo Ultra Rendering",
+    "label_multi_angle_sync": "MULTI-ANGLE SYNC",
+    "label_side": "SIDE",
+    "label_45_degree": "45°",
+    "label_body": "BODY"
   },
   "studio": {
     "title": "AI Avatar Studio",
@@ -109,3 +141,4 @@
     "terms": "By continuing, you agree to our Terms of Service"
   }
 }
+

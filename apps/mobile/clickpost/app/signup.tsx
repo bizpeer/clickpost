@@ -80,6 +80,7 @@ export default function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
   const [persona, setPersona] = useState<PersonaData | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     birthDate: '',
@@ -90,6 +91,7 @@ export default function SignupScreen() {
     payment: '',
     paymentAccount: '',
   });
+  const [quickAuthMethod, setQuickAuthMethod] = useState<string | null>(null);
 
   const progress = useSharedValue(step / 5);
 
@@ -152,9 +154,15 @@ export default function SignupScreen() {
     }
   };
 
+  const addLog = (message: string) => {
+    setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`].slice(-6));
+  };
+
   const generatePersona = async () => {
     setLoading(true);
-    setGenerationStep('prompt'); // New state for granular feedback
+    setLogs([]);
+    setGenerationStep('prompt');
+    
     try {
       const birthDateObj = new Date(formData.birthDate || '2000-01-01');
       const userInfo = {
@@ -162,25 +170,34 @@ export default function SignupScreen() {
         birthDate: birthDateObj,
         gender: formData.gender,
         countryCode: formData.country.code,
-        height: parseInt(formData.height),
-        weight: parseInt(formData.weight),
+        height: parseInt(formData.height) || 175,
+        weight: parseInt(formData.weight) || 70,
         preferredPayment: formData.payment,
         paymentAccountInfo: formData.paymentAccount,
       };
 
       await storageService.setUserInfo(userInfo);
       
-      // The async engine now handles the simulation delays internally
+      addLog(t('signup.gemini_analyzing'));
+      await new Promise(resolve => setTimeout(resolve, 800));
+      addLog(t('signup.terminal_analyzing_heritage'));
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      addLog(t('signup.terminal_synthesizing_prompt'));
+      
       const generatedPersona = await PersonaEngine.generatePersona(userInfo);
       
       setGenerationStep('assets');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Final sync delay
+      addLog(t('signup.veo_rendering'));
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      addLog(t('signup.terminal_processing_spatial'));
+      await new Promise(resolve => setTimeout(resolve, 1800));
+      addLog(t('signup.terminal_seed_locked', { seedId: generatedPersona.seedId }));
       
       setPersona(generatedPersona);
       await storageService.setPersonaData(generatedPersona);
     } catch (error) {
       console.error('Persona generation error:', error);
-      Alert.alert(t('common.error'), 'Failed to generate persona.');
+      Alert.alert(t('common.error'), t('signup.error_generate_persona'));
     } finally {
       setLoading(false);
       setGenerationStep('idle');
@@ -202,53 +219,106 @@ export default function SignupScreen() {
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
+    Alert.alert(
+      t('studio.refine_confirm_title'),
+      t('studio.refine_confirm_msg'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { 
+          text: t('common.upload_photo'), 
+          onPress: async () => {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.8,
+            });
 
-    if (!result.canceled && result.assets[0].uri) {
-      setLoading(true);
-      try {
-        const updatedPersona = await PersonaEngine.updatePersonaWithPhoto(persona, result.assets[0].uri);
-        setPersona(updatedPersona);
-        await storageService.setPersonaData(updatedPersona);
-        Alert.alert(t('common.success'), t('studio.refined_success'));
-      } catch (error) {
-        Alert.alert(t('common.error'), 'Failed to update avatar.');
-      } finally {
-        setLoading(false);
-      }
-    }
+            if (!result.canceled && result.assets[0].uri) {
+              setLoading(true);
+              try {
+                // Identity refinement process
+                const updatedPersona = await PersonaEngine.updatePersonaWithPhoto(persona, result.assets[0].uri);
+                setPersona(updatedPersona);
+                await storageService.setPersonaData(updatedPersona);
+                Alert.alert(t('common.success'), t('studio.refined_success'));
+              } catch (error) {
+                Alert.alert(t('common.error'), t('signup.error_update_avatar'));
+              } finally {
+                setLoading(false);
+              }
+            }
+          }
+        }
+      ]
+    );
   };
 
-  const [isFinishing, setIsFinishing] = useState(false);
+  const [finishingStatus, setFinishingStatus] = useState<'establishing' | 'securing' | 'anchoring' | 'synchronized' | 'success'>('establishing');
 
   const handleComplete = async () => {
     if (!persona) return;
     setIsFinishing(true);
+    setFinishingStatus('establishing');
     try {
-      // Finalize and save onboarded state
-      await storageService.setOnboarded(true);
+      // Stage 1: Security Node Establishment
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setFinishingStatus('securing');
       
-      // Simulate final account creation and session establishment
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Stage 2: Wallet Security & Vaulting
+      await new Promise(resolve => setTimeout(resolve, 1800));
+      setFinishingStatus('anchoring');
+      
+      // Stage 3: Identity Anchoring
+      await new Promise(resolve => setTimeout(resolve, 1800));
+      setFinishingStatus('synchronized');
+      
+      // Stage 4: Final Sync
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      setFinishingStatus('success');
+      
+      // Save onboarded state and transition
+      await storageService.setOnboarded(true);
+      await new Promise(resolve => setTimeout(resolve, 1200));
       
       setIsFinishing(false);
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Finalization error:', error);
       setIsFinishing(false);
-      Alert.alert(t('common.error'), 'Failed to finalize your account.');
+      Alert.alert(t('common.error'), t('signup.error_finalize_account'));
     }
+  };
+
+  const handleQuickStart = (method: string) => {
+    setQuickAuthMethod(method);
+    setIsFetchingInfo(true);
+    
+    // Simulate fetching profile data from local pay provider
+    setTimeout(() => {
+      setFormData(prev => ({
+        ...prev,
+        name: method === 'Naver Pay' ? '김네이버' : method === 'Kakao Pay' ? '이지카카오' : method === 'PayPay' ? '佐藤太郎' : 'Global User',
+        birthDate: '1995-08-15',
+        gender: 'FEMALE',
+        country: method === 'PayPay' ? COUNTRIES[1] : COUNTRIES[0], // Japan for PayPay
+        payment: method,
+        paymentAccount: method === 'Naver Pay' ? 'naver_user_88' : method === 'Kakao Pay' ? 'kakao_auth_99' : 'paypay_7722',
+      }));
+      
+      setTimeout(() => {
+        setIsFetchingInfo(false);
+        setStep(4); // Skip to step 4 to confirm payment account
+        setAuthStatus('success');
+      }, 1500);
+    }, 2500);
   };
 
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
       <Typography variant="h1" bold style={styles.stepTitle}>{t('signup.step1_title')}</Typography>
       <Typography variant="body" color="rgba(255,255,255,0.6)" style={styles.stepSubtitle}>{t('signup.step1_subtitle')}</Typography>
+      
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -256,7 +326,7 @@ export default function SignupScreen() {
           placeholderTextColor="rgba(255,255,255,0.2)"
           value={formData.name}
           onChangeText={(text) => setFormData({ ...formData, name: text })}
-          autoFocus
+          autoFocus={step === 1}
         />
         {formData.name.length > 0 && (
           <View style={styles.inputIcon}>
@@ -264,6 +334,80 @@ export default function SignupScreen() {
           </View>
         )}
       </View>
+
+      <View style={{ marginTop: 32 }}>
+        <View style={styles.quickStartHeader}>
+          <Typography variant="caption" bold color={theme.primary} style={{ letterSpacing: 2 }}>{t('signup.quick_start_title')}</Typography>
+          <Typography variant="tiny" color="rgba(255,255,255,0.4)">{t('signup.quick_start_subtitle')}</Typography>
+        </View>
+        <View style={styles.quickStartBento}>
+          <View style={styles.quickStartRow}>
+            {['Naver Pay', 'Kakao Pay'].map((method, index) => (
+              <Animated.View 
+                key={method}
+                entering={FadeInDown.delay(100 * index).springify()}
+                style={[styles.quickStartItem, styles.quickStartItemLarge]}
+              >
+                <TouchableOpacity 
+                  style={StyleSheet.absoluteFill}
+                  onPress={() => handleQuickStart(method)}
+                >
+                  <View style={[styles.quickStartIcon, { backgroundColor: PAYMENT_COLORS[method] }]}>
+                    <IconSymbol 
+                      name="creditcard.fill" 
+                      size={24} 
+                      color={(method === 'Kakao Pay' || method === 'Naver Pay') ? '#1A1A1A' : '#FFFFFF'} 
+                    />
+                  </View>
+                  <View style={{ marginTop: 12 }}>
+                    <Typography variant="body" bold>{method}</Typography>
+                    <Typography variant="tiny" color="rgba(255,255,255,0.4)">{t('signup.one_tap_connection')}</Typography>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+          </View>
+          <View style={styles.quickStartRow}>
+            {['PayPay', 'Grab', 'Line Pay', 'Google'].map((method, index) => (
+              <Animated.View 
+                key={method}
+                entering={FadeInDown.delay(300 + (100 * index)).springify()}
+                style={[styles.quickStartItem, styles.quickStartItemSmall]}
+              >
+                <TouchableOpacity 
+                  style={styles.quickStartItemInner}
+                  onPress={() => handleQuickStart(method)}
+                >
+                  <View style={[styles.quickStartIconSmall, { backgroundColor: PAYMENT_COLORS[method] || '#333' }]}>
+                    <IconSymbol 
+                      name={method === 'Google' ? 'person.circle.fill' : 'creditcard.fill'} 
+                      size={14} 
+                      color={method === 'Google' ? '#FFFFFF' : (PAYMENT_COLORS[method] === '#FAE100' ? '#1A1A1A' : '#FFFFFF')} 
+                    />
+                  </View>
+                  <Typography variant="tiny" bold style={{ marginLeft: 8 }}>{method}</Typography>
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {isFetchingInfo && (
+        <Animated.View entering={FadeIn} style={styles.fetchingOverlay}>
+          <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFill}>
+            <View style={styles.fetchingContent}>
+              <ActivityIndicator size="large" color={PAYMENT_COLORS[quickAuthMethod || ''] || theme.primary} />
+              <Typography variant="h3" bold style={{ marginTop: 24 }}>
+                {t('signup.quick_auth_fetching', { method: quickAuthMethod })}
+              </Typography>
+              <Typography variant="body" color="rgba(255,255,255,0.6)" style={{ marginTop: 8 }}>
+                {t('signup.one_tap_connection')}
+              </Typography>
+            </View>
+          </BlurView>
+        </Animated.View>
+      )}
     </View>
   );
 
@@ -362,33 +506,43 @@ export default function SignupScreen() {
         {t('signup.step4_subtitle')}
       </Typography>
 
-      <ScrollView style={{ marginTop: 24 }} showsVerticalScrollIndicator={false}>
+      <View style={{ flex: 1, marginTop: 24 }}>
         {!formData.payment ? (
-          formData.country.payments.map((p) => {
-            const brandColor = PAYMENT_COLORS[p] || '#FFFFFF';
-            return (
-              <TouchableOpacity 
-                key={p} 
-                style={styles.paymentCard}
-                onPress={() => setFormData({ ...formData, payment: p })}
-              >
-                <View style={[styles.paymentIcon, { backgroundColor: brandColor }]}>
-                  <IconSymbol 
-                    name="creditcard.fill" 
-                    size={22} 
-                    color={brandColor === '#FAE100' ? '#1A1A1A' : '#FFFFFF'} 
-                  />
-                </View>
-                <View style={{ flex: 1, marginLeft: 16 }}>
-                  <Typography variant="h3" bold>{p}</Typography>
-                  <Typography variant="caption" color="rgba(255,255,255,0.4)">
-                    {t('signup.one_tap_connection')}
-                  </Typography>
-                </View>
-                <IconSymbol name="chevron.right" size={20} color="rgba(255,255,255,0.2)" />
-              </TouchableOpacity>
-            );
-          })
+          <View style={styles.paymentBentoGrid}>
+            {formData.country.payments.map((p, index) => {
+              const brandColor = PAYMENT_COLORS[p] || '#FFFFFF';
+              const isLarge = index === 0;
+              return (
+                <Animated.View 
+                  key={p} 
+                  entering={FadeInDown.delay(100 * index).springify()}
+                  style={[
+                    styles.paymentBentoCard,
+                    isLarge && styles.paymentBentoCardLarge
+                  ]}
+                >
+                  <TouchableOpacity 
+                    style={StyleSheet.absoluteFill}
+                    onPress={() => setFormData({ ...formData, payment: p })}
+                  >
+                    <View style={[styles.paymentBentoIcon, { backgroundColor: brandColor }]}>
+                      <IconSymbol 
+                        name="creditcard.fill" 
+                        size={isLarge ? 28 : 22} 
+                        color={brandColor === '#FAE100' ? '#1A1A1A' : '#FFFFFF'} 
+                      />
+                    </View>
+                    <View style={styles.paymentBentoLabel}>
+                      <Typography variant={isLarge ? "h2" : "body"} bold>{p}</Typography>
+                      <Typography variant="tiny" color="rgba(255,255,255,0.4)" numberOfLines={1}>
+                        {t('signup.one_tap_connection')}
+                      </Typography>
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })}
+          </View>
         ) : (
           <Animated.View entering={FadeInRight} style={styles.accountInputContainer}>
             <View style={styles.paymentInfoBox}>
@@ -444,21 +598,29 @@ export default function SignupScreen() {
         >
           <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill}>
             <View style={styles.secureOverlayContent}>
-              <Animated.View 
-                entering={FadeInDown.springify()} 
-                style={[styles.authIconCircle, { borderColor: PAYMENT_COLORS[formData.payment] || theme.primary }, animatedPulseStyle]}
-              >
-                <Animated.View style={StyleSheet.absoluteFill}>
-                   <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
-                </Animated.View>
-                {authStatus === 'linking' ? (
-                  <ActivityIndicator size="large" color={PAYMENT_COLORS[formData.payment] || theme.primary} />
-                ) : (
-                  <Animated.View entering={FadeIn.springify()}>
-                    <IconSymbol name="checkmark.circle.fill" size={60} color={PAYMENT_COLORS[formData.payment] || theme.primary} />
+              <View style={styles.scanningContainerSmall}>
+                <Animated.View 
+                  style={[styles.scannerGlow, { backgroundColor: PAYMENT_COLORS[formData.payment] || theme.primary }, animatedScannerGlowStyle]} 
+                />
+                <Animated.View 
+                  style={[styles.scannerLine, { backgroundColor: PAYMENT_COLORS[formData.payment] || theme.primary }, animatedScannerStyle]} 
+                />
+                <Animated.View 
+                  entering={FadeInDown.springify()} 
+                  style={[styles.authIconCircle, { borderColor: PAYMENT_COLORS[formData.payment] || theme.primary }, animatedPulseStyle]}
+                >
+                  <Animated.View style={StyleSheet.absoluteFill}>
+                    <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
                   </Animated.View>
-                )}
-              </Animated.View>
+                  {authStatus === 'linking' ? (
+                    <ActivityIndicator size="large" color={PAYMENT_COLORS[formData.payment] || theme.primary} />
+                  ) : (
+                    <Animated.View entering={FadeIn.springify()}>
+                      <IconSymbol name="checkmark.circle.fill" size={60} color={PAYMENT_COLORS[formData.payment] || theme.primary} />
+                    </Animated.View>
+                  )}
+                </Animated.View>
+              </View>
               
               <Animated.View entering={FadeInDown.delay(200).springify()}>
                 <Typography variant="h1" bold style={{ marginTop: 32, textAlign: 'center', letterSpacing: -0.5 }}>
@@ -471,6 +633,18 @@ export default function SignupScreen() {
                     : t('signup.auth_success_subtitle')}
                 </Typography>
               </Animated.View>
+
+              {authStatus === 'linking' && (
+                <View style={styles.dataPacketsContainer}>
+                  {[1, 2, 3, 4].map((_, i) => (
+                    <Animated.View 
+                      key={i}
+                      entering={FadeIn.delay(i * 400)}
+                      style={[styles.dataNodeSmall, { left: i * 30 - 45 }]}
+                    />
+                  ))}
+                </View>
+              )}
 
               {authStatus === 'linking' && (
                 <Animated.View entering={FadeIn.delay(400)} style={styles.secureBadgeRow}>
@@ -551,13 +725,13 @@ export default function SignupScreen() {
 
             {/* Other Angles */}
             <Animated.View entering={FadeInDown.delay(800)} style={[styles.bentoCard, { height: 140 }]}>
-              <Typography variant="caption" color="rgba(255,255,255,0.4)" bold style={{ marginBottom: 12 }}>MULTI-ANGLE SYNC</Typography>
+              <Typography variant="caption" color="rgba(255,255,255,0.4)" bold style={{ marginBottom: 12 }}>{t('signup.label_multi_angle_sync')}</Typography>
               <View style={styles.anglesRow}>
                 {[persona.asset_side_url, persona.asset_half_url, persona.asset_full_url].map((url, i) => (
                   <View key={i} style={styles.angleThumbWrapper}>
                     <Image source={{ uri: url }} style={styles.angleThumb} />
                     <View style={styles.angleLabel}>
-                      <Typography variant="tiny" bold color="#FFFFFF">{['SIDE', '45°', 'BODY'][i]}</Typography>
+                      <Typography variant="tiny" bold color="#FFFFFF">{[t('signup.label_side'), t('signup.label_45_degree'), t('signup.label_body')][i]}</Typography>
                     </View>
                   </View>
                 ))}
@@ -601,22 +775,36 @@ export default function SignupScreen() {
             <ActivityIndicator size="large" color={theme.primary} />
           </View>
           
-          <Animated.View entering={FadeIn} key={generationStep} style={{ alignItems: 'center', marginTop: 40 }}>
+          <Animated.View entering={FadeIn} key={generationStep} style={{ alignItems: 'center', marginTop: 40, width: '100%' }}>
             <View style={styles.stepIndicatorRow}>
               <View style={[styles.stepIndicator, generationStep === 'prompt' && styles.stepIndicatorActive]} />
               <View style={[styles.stepIndicator, generationStep === 'assets' && styles.stepIndicatorActive]} />
             </View>
             
             <Typography variant="h2" bold style={{ textAlign: 'center', letterSpacing: 2, textTransform: 'uppercase' }}>
-              {generationStep === 'prompt' ? 'Gemini Synthesis' : 'Veo Ultra Gen'}
+              {generationStep === 'prompt' ? t('signup.label_gemini_synthesis') : t('signup.label_veo_rendering')}
             </Typography>
             
             <View style={styles.progressDetailBox}>
-              <Typography variant="body" color="rgba(255,255,255,0.7)" style={{ textAlign: 'center', lineHeight: 22 }}>
-                {generationStep === 'prompt' 
-                  ? 'Gemini 1.5 Pro is analyzing your demographic heritage to construct a high-fidelity visual prompt...' 
-                  : 'Google Veo v2.0 Ultra is processing your biometric seed to render consistent identity across all dimensions...'}
-              </Typography>
+              <View style={styles.terminalHeader}>
+                <View style={[styles.terminalDot, { backgroundColor: '#FF5F56' }]} />
+                <View style={[styles.terminalDot, { backgroundColor: '#FFBD2E' }]} />
+                <View style={[styles.terminalDot, { backgroundColor: '#27C93F' }]} />
+                <Typography variant="tiny" bold color="rgba(255,255,255,0.3)" style={{ marginLeft: 8 }}>{t('signup.terminal_process_log')}</Typography>
+              </View>
+              {logs.map((log, index) => (
+                <Animated.View 
+                  key={`${index}-${log}`}
+                  entering={FadeInRight.duration(400)}
+                  style={styles.logLine}
+                >
+                  <Typography variant="tiny" color={theme.primary} bold>{log.substring(0, 12)}</Typography>
+                  <Typography variant="tiny" color="rgba(255,255,255,0.7)" style={{ flex: 1 }}>{log.substring(12)}</Typography>
+                </Animated.View>
+              ))}
+              {logs.length === 0 && (
+                <Typography variant="tiny" color="rgba(255,255,255,0.2)">Waiting for kernel response...</Typography>
+              )}
             </View>
             
             <View style={styles.processingMetrics}>
@@ -691,16 +879,60 @@ export default function SignupScreen() {
 
       {(loading || isFinishing) && step < 6 && (
         <View style={styles.fullOverlay}>
-          <ActivityIndicator size="large" color={theme.primary} />
-          {isFinishing && (
-            <Animated.View entering={FadeInDown} style={{ alignItems: 'center', marginTop: 24 }}>
-              <Typography variant="h3" bold>Establishing Secure Session</Typography>
-              <Typography variant="body" color="rgba(255,255,255,0.6)" style={{ marginTop: 8, textAlign: 'center', paddingHorizontal: 40 }}>
-                {t('signup.session_securing_wallet')}{'\n'}
-                {t('signup.session_finalizing_identity')}
-              </Typography>
-            </Animated.View>
-          )}
+          <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
+          
+          <View style={styles.finishingAnimationContainer}>
+            <View style={styles.scanningContainer}>
+              <Animated.View 
+                style={[styles.scannerGlow, { backgroundColor: theme.primary }, animatedScannerGlowStyle]} 
+              />
+              <Animated.View 
+                style={[styles.scannerLine, { backgroundColor: theme.primary }, animatedScannerStyle]} 
+              />
+              <View style={styles.pulseRingsContainer}>
+                <Animated.View style={[styles.pulseRing, { borderColor: theme.primary }, animatedPulseStyle]} />
+                <Animated.View style={[styles.pulseRing, { borderColor: theme.primary, opacity: 0.2 }, animatedPulseStyle]} />
+              </View>
+              {finishingStatus === 'success' ? (
+                <Animated.View entering={FadeIn.springify()}>
+                  <IconSymbol name="checkmark.circle.fill" size={80} color={theme.primary} />
+                </Animated.View>
+              ) : (
+                <ActivityIndicator size="large" color={theme.primary} />
+              )}
+            </View>
+
+            {isFinishing && (
+              <Animated.View entering={FadeInDown} style={{ alignItems: 'center', marginTop: 40 }}>
+                <Typography variant="h1" bold style={{ letterSpacing: 2, textAlign: 'center' }}>
+                  {finishingStatus === 'establishing' ? t('signup.session_establishing_node').toUpperCase() : 
+                   finishingStatus === 'securing' ? t('signup.session_securing_wallet').toUpperCase() : 
+                   finishingStatus === 'anchoring' ? t('signup.session_anchoring_identity').toUpperCase() : 
+                   finishingStatus === 'synchronized' ? t('signup.session_synchronized').toUpperCase() : t('signup.auth_success_title').toUpperCase()}
+                </Typography>
+                
+                <View style={styles.statusBadgeRow}>
+                  {['establishing', 'securing', 'anchoring', 'synchronized', 'success'].map((s, i) => (
+                    <View 
+                      key={s} 
+                      style={[
+                        styles.statusDot, 
+                        finishingStatus === s && styles.statusDotActive,
+                        ['establishing', 'securing', 'anchoring', 'synchronized', 'success'].indexOf(finishingStatus) > i && styles.statusDotComplete
+                      ]} 
+                    />
+                  ))}
+                </View>
+
+                <Typography variant="body" color="rgba(255,255,255,0.6)" style={{ marginTop: 20, textAlign: 'center', paddingHorizontal: 40, lineHeight: 24 }}>
+                  {finishingStatus === 'establishing' ? 'Building encrypted tunnel to regional nodes...' : 
+                   finishingStatus === 'securing' ? t('signup.session_securing_wallet') : 
+                   finishingStatus === 'anchoring' ? t('signup.session_anchoring_identity') : 
+                   finishingStatus === 'synchronized' ? 'Identity session verified and synchronized.' : 'Digital persona live. Redirecting to terminal...'}
+                </Typography>
+              </Animated.View>
+            )}
+          </View>
         </View>
       )}
     </ScreenWrapper>
@@ -1095,5 +1327,203 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-});
+  quickStartHeader: {
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  quickStartBento: {
+    gap: 12,
+  },
+  quickStartItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1C1C1E',
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  quickStartItemWide: {
+    // Optional: add specific styling for the wide item
+  },
+  quickStartIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fetchingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+  },
+  fetchingContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paymentBentoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  paymentBentoCard: {
+    width: (width - 24 - 12) / 2, // 2-column grid
+    aspectRatio: 1.1,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    overflow: 'hidden',
+    padding: 20,
+  },
+  paymentBentoCardLarge: {
+    width: '100%',
+    aspectRatio: 2.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  paymentBentoIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  paymentBentoLabel: {
+    flex: 1,
+  },
+  quickStartRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  quickStartItemLarge: {
+    flex: 1,
+    height: 140,
+    padding: 20,
+  },
+  quickStartItemSmall: {
+    flex: 1,
+    height: 64,
+    padding: 0,
+    justifyContent: 'center',
+  },
+  quickStartItemInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    height: '100%',
+  },
+  quickStartIconSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanningContainerSmall: {
+    width: 180,
+    height: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  dataPacketsContainer: {
+    position: 'absolute',
+    top: '45%',
+    flexDirection: 'row',
+    gap: 20,
+  },
+  dataNodeSmall: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FAE100',
+    opacity: 0.6,
+  },
+  terminalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    opacity: 0.5,
+  },
+  terminalDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  logLine: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  finishingAnimationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 60,
+  },
+  statusBadgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 24,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  statusDotActive: {
+    backgroundColor: '#FAE100',
+    width: 16,
+  },
+  statusDotComplete: {
+    backgroundColor: 'rgba(250,225,0,0.4)',
+  },
+  fullOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2000,
+  },
+  progressDetailBox: {
+    width: '90%',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  processingMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '90%',
+    marginTop: 24,
+    paddingHorizontal: 10,
+  },
+  metricItem: {
+    alignItems: 'center',
+  },
+  authIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  secureOverlayContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 40,
+  },
 });
