@@ -5,6 +5,10 @@ export interface UserInfo {
   birthDate: Date;
   gender: Gender;
   countryCode: string; // ISO-2 (e.g., 'KR', 'VN', 'US')
+  height: number;
+  weight: number;
+  preferredPayment: string;
+  paymentAccountInfo: string;
 }
 
 export interface PersonaData {
@@ -13,6 +17,13 @@ export interface PersonaData {
   ageGroup: string;
   vibe: string;
   countryStyle: string;
+  hasChangedAvatar: boolean;
+  asset_front_url: string;
+  asset_side_url: string;
+  asset_half_url: string;
+  asset_full_url: string;
+  aesthetic: string;
+  symmetry: string;
 }
 
 export interface PersonaParams {
@@ -21,4 +32,5 @@ export interface PersonaParams {
   ageVibe: string;
   countryFeatures: string;
   nameStyle: string;
+  bodyDescription: string;
 }
