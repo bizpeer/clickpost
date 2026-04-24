@@ -82,7 +82,7 @@ export class CampaignService {
           variation_id: variation.variation_id,
           ai_script: variation.variation_text,
           status: 'GENERATING',
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          expires_at: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString() // 1 hour validity
         })
         .select()
         .single();

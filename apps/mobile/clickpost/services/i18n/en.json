@@ -74,6 +74,7 @@
   },
   "studio": {
     "title": "AI Avatar Studio",
+    "subtitle": "NanoBanana Seed ID based Multi-angle Sync",
     "label_seed_id": "SEED ID",
     "label_insights": "BIOMETRIC INSIGHTS",
     "label_symmetry": "SYMMETRY",
@@ -83,8 +84,11 @@
     "label_region": "REGION",
     "label_aesthetic": "AESTHETIC",
     "button_refine": "Refine with My Photo",
+    "button_regenerate": "Regenerate All Assets",
+    "refined_label": "Refined",
     "refined_success": "Avatar Refined via Photo",
     "syncing": "Syncing with Veo API...",
+    "regenerating": "Regenerating all assets...",
     "limit_reached_title": "Limit Reached",
     "limit_reached_msg": "You can only refine your avatar with a photo once.",
     "label_one_time": "Only once",
@@ -97,7 +101,12 @@
     "aesthetic_premium": "Premium",
     "symmetry_perfect": "Perfect",
     "label_seed_integrity": "Seed Integrity",
-    "status_stable": "Stable Phase"
+    "status_stable": "Stable Phase",
+    "angle_front": "Front",
+    "angle_side": "Side",
+    "angle_half": "Half",
+    "angle_full": "Full-body",
+    "angle_back": "Back"
   },
   "marketplace": {
     "hello": "Hello, {{name}}",

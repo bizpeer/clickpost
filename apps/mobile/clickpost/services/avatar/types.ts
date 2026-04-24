@@ -26,6 +26,7 @@ export interface PersonaData {
   asset_side_url: string;
   asset_half_url: string;
   asset_full_url: string;
+  asset_back_url: string;
   aesthetic: string;
   symmetry: string;
 }

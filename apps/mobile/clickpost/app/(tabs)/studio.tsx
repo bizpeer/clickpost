@@ -36,6 +36,7 @@ export default function StudioScreen() {
   const [persona, setPersona] = useState<PersonaData | null>(null);
   const [userInfo, setUserInfo] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
     const data = storageService.getPersonaData();
@@ -73,6 +74,20 @@ export default function StudioScreen() {
     }
   };
 
+  const handleRegenerate = async () => {
+    if (!persona) return;
+    setRegenerating(true);
+    try {
+      const updatedPersona = await PersonaEngine.regeneratePersona(persona);
+      setPersona(updatedPersona);
+      await storageService.setPersonaData(updatedPersona);
+    } catch (error) {
+      Alert.alert(t('common.error'), 'Failed to regenerate assets.');
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   if (!persona || !userInfo) {
     return (
       <ScreenWrapper>
@@ -99,11 +114,22 @@ export default function StudioScreen() {
         <Animated.View entering={FadeInDown.delay(200)} style={styles.bentoGrid}>
           {/* Primary Avatar View */}
           <View style={[styles.bentoCard, styles.bentoCardXLarge]}>
-            <Image source={{ uri: persona.asset_front_url }} style={styles.personaLargeImage} contentFit="cover" />
+            <Image 
+              source={{ uri: persona.asset_front_url }} 
+              style={styles.personaLargeImage} 
+              contentFit="cover" 
+              transition={1000}
+            />
+            {regenerating && (
+              <View style={styles.regeneratingOverlay}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Typography variant="body" bold style={{ marginTop: 12 }}>{t('studio.regenerating')}</Typography>
+              </View>
+            )}
             <TouchableOpacity 
               style={[styles.refineButton, persona.hasChangedAvatar && styles.disabledRefine]} 
               onPress={pickImage}
-              disabled={loading}
+              disabled={loading || regenerating}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -158,39 +184,28 @@ export default function StudioScreen() {
             </View>
           </View>
 
-          {/* Payment & Localization Info */}
-          <View style={[styles.bentoCard, { height: 100 }]}>
-            <Typography variant="caption" color="rgba(255,255,255,0.4)">{t('signup.step4_title')}</Typography>
-            <View style={styles.paymentInfoRow}>
-              <View style={[styles.paymentBadge, { backgroundColor: PAYMENT_COLORS[userInfo.preferredPayment] || theme.primary }]}>
-                <Typography variant="body" bold color={userInfo.preferredPayment === 'Kakao Pay' ? '#1A1A1A' : '#FFFFFF'}>
-                  {userInfo.preferredPayment}
-                </Typography>
-              </View>
-              <View style={{ marginLeft: 12 }}>
-                <Typography variant="caption" color="rgba(255,255,255,0.6)">{t('signup.label_payment_account')}</Typography>
-                <Typography variant="body" bold>{userInfo.paymentAccountInfo}</Typography>
-              </View>
-            </View>
-          </View>
-
-          {/* Multi-Angle Preview */}
+          {/* Multi-Angle Preview (5-Angles) */}
           <View style={[styles.bentoCard]}>
-            <Typography variant="caption" color="rgba(255,255,255,0.4)" style={{ marginBottom: 16 }}>MULTI-ANGLE SYNC (VEO v2)</Typography>
-            <View style={styles.anglesRow}>
-              <View style={styles.angleContainer}>
-                <Image source={{ uri: persona.asset_side_url }} style={styles.angleImage} />
-                <Typography variant="tiny" center color="rgba(255,255,255,0.4)" style={{ marginTop: 4 }}>PROFILE</Typography>
-              </View>
-              <View style={styles.angleContainer}>
-                <Image source={{ uri: persona.asset_half_url }} style={styles.angleImage} />
-                <Typography variant="tiny" center color="rgba(255,255,255,0.4)" style={{ marginTop: 4 }}>HALF-SIDE</Typography>
-              </View>
-              <View style={styles.angleContainer}>
-                <Image source={{ uri: persona.asset_full_url }} style={styles.angleImage} />
-                <Typography variant="tiny" center color="rgba(255,255,255,0.4)" style={{ marginTop: 4 }}>FULL-BODY</Typography>
-              </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Typography variant="caption" color="rgba(255,255,255,0.4)">MULTI-ANGLE SYNC (VEO v2.0)</Typography>
+              <TouchableOpacity onPress={handleRegenerate} disabled={regenerating}>
+                <Typography variant="caption" bold color={theme.primary}>{t('studio.button_regenerate')}</Typography>
+              </TouchableOpacity>
             </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.anglesScroll}>
+              {[
+                { url: persona.asset_front_url, label: t('studio.angle_front') },
+                { url: persona.asset_side_url, label: t('studio.angle_side') },
+                { url: persona.asset_half_url, label: t('studio.angle_half') },
+                { url: persona.asset_full_url, label: t('studio.angle_full') },
+                { url: persona.asset_back_url, label: t('studio.angle_back') },
+              ].map((item, idx) => (
+                <View key={idx} style={styles.angleContainer}>
+                  <Image source={{ uri: item.url }} style={styles.angleImage} transition={500} />
+                  <Typography variant="tiny" center color="rgba(255,255,255,0.4)" style={{ marginTop: 6 }}>{item.label}</Typography>
+                </View>
+              ))}
+            </ScrollView>
           </View>
 
           {/* Prompt Insights */}
@@ -347,159 +362,5 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 32,
     paddingHorizontal: 40,
-  },
-});
-
-const styles = StyleSheet.create({
-  container: {
-    paddingBottom: 40,
-  },
-  header: {
-    marginTop: 20,
-    marginBottom: 24,
-  },
-  personaCard: {
-    padding: 0,
-    marginBottom: 32,
-    backgroundColor: '#2B2B2B',
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 0,
-  },
-  portraitContainer: {
-    width: '100%',
-    height: 300,
-    position: 'relative',
-  },
-  mainPortrait: {
-    width: '100%',
-    height: '100%',
-  },
-  personaInfoContainer: {
-    padding: 20,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  seedBadge: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
-    backgroundColor: '#FAE100',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  personaInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    paddingHorizontal: 4,
-  },
-  infoItem: {
-    flex: 1,
-  },
-  promptLabel: {
-    marginBottom: 8,
-    opacity: 0.6,
-  },
-  promptContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 16,
-  },
-  assetGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  assetItem: {
-    width: '48%',
-    aspectRatio: 0.85,
-    marginBottom: 16,
-    borderRadius: 20,
-    overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#333',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  assetImage: {
-    width: '100%',
-    height: '100%',
-  },
-  assetLabel: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  zoomIcon: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    padding: 6,
-    borderRadius: 12,
-  },
-  actionFooter: {
-    marginTop: 16,
-    gap: 12,
-  },
-  confirmButton: {
-    height: 56,
-  },
-  refineButton: {
-    height: 56,
-  },
-  statusBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(250, 225, 0, 0.1)',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(250, 225, 0, 0.2)',
-  },
-  statusText: {
-    marginLeft: 8,
-    fontWeight: '600',
-  },
-  refinedBadge: {
-    backgroundColor: '#00C853',
-  },
-  confirmedBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    height: 64,
-    borderRadius: 20,
-    marginTop: 16,
-  },
-  disclaimer: {
-    textAlign: 'center',
-    marginTop: 20,
-    opacity: 0.5,
-    paddingHorizontal: 20,
-    lineHeight: 18,
   },
 });

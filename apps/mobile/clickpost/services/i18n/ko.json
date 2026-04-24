@@ -74,6 +74,7 @@
   },
   "studio": {
     "title": "AI 아바타 스튜디오",
+    "subtitle": "NanoBanana Seed ID 기반 멀티 앵글 동기화",
     "label_seed_id": "SEED ID",
     "label_insights": "생체 데이터 통계",
     "label_symmetry": "대칭도",
@@ -83,8 +84,11 @@
     "label_region": "지역",
     "label_aesthetic": "에스테틱",
     "button_refine": "내 사진으로 정교화",
+    "button_regenerate": "전체 에셋 재생성",
+    "refined_label": "정교화 완료",
     "refined_success": "사진을 통한 아바타 정교화 완료",
     "syncing": "Veo API와 동기화 중...",
+    "regenerating": "전체 에셋 재생성 중...",
     "limit_reached_title": "제한 도달",
     "limit_reached_msg": "사진을 통한 아바타 정교화는 단 한 번만 가능합니다.",
     "label_one_time": "단 1회 가능",
@@ -97,7 +101,12 @@
     "aesthetic_premium": "프리미엄",
     "symmetry_perfect": "완벽",
     "label_seed_integrity": "시드 무결성",
-    "status_stable": "안정화 단계"
+    "status_stable": "안정화 단계",
+    "angle_front": "정면",
+    "angle_side": "측면",
+    "angle_half": "반측면",
+    "angle_full": "전신",
+    "angle_back": "후면"
   },
   "marketplace": {
     "hello": "안녕하세요, {{name}}님",

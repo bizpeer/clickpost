@@ -54,8 +54,30 @@ export class PersonaEngine {
       asset_side_url: this.getDemoAssetUrl(seedId, 'side'),
       asset_half_url: this.getDemoAssetUrl(seedId, 'half'),
       asset_full_url: this.getDemoAssetUrl(seedId, 'full'),
+      asset_back_url: this.getDemoAssetUrl(seedId, 'back'),
       aesthetic: 'studio.aesthetic_premium',
       symmetry: 'studio.symmetry_perfect',
+    };
+  }
+
+  /**
+   * Seed ID 기반으로 전체 페르소나 에셋을 재생성합니다.
+   * [VEO v2.0 Ultra] 엔진을 호출하여 5개 각도의 에셋을 일괄 재생성하는 시뮬레이션입니다.
+   */
+  public static async regeneratePersona(currentPersona: PersonaData): Promise<PersonaData> {
+    console.log(`[VEO_ULTRA_2.0] Regenerating all assets for Seed: #${currentPersona.seedId}`);
+    
+    // 재생성 시뮬레이션 지연
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // 실제로는 같은 Seed ID라도 AI 생성기에 의해 미세하게 다른 결과가 나올 수 있음을 시뮬레이션
+    return {
+      ...currentPersona,
+      asset_front_url: this.getDemoAssetUrl(currentPersona.seedId, 'front'),
+      asset_side_url: this.getDemoAssetUrl(currentPersona.seedId, 'side'),
+      asset_half_url: this.getDemoAssetUrl(currentPersona.seedId, 'half'),
+      asset_full_url: this.getDemoAssetUrl(currentPersona.seedId, 'full'),
+      asset_back_url: this.getDemoAssetUrl(currentPersona.seedId, 'back'),
     };
   }
 
@@ -69,7 +91,9 @@ export class PersonaEngine {
       'front': '1539571696357-5a69c17a67c6',
       'side': '1506794778202-cad84cf45f1d',
       'half': '1507003211169-0a1dd7228f2d',
-      'full': '1531746020798-e6953c6e8e04'
+      'full': '1531746020798-e6953c6e8e04',
+      'back': '1521119229307-226c195ee4c5'
+    };
     };
     return `${baseUnsplashUrl}${portraitIds[type]}?q=80&w=800&auto=format&fit=crop`;
   }
@@ -99,6 +123,7 @@ export class PersonaEngine {
       asset_side_url: photoUri, 
       asset_half_url: photoUri,
       asset_full_url: photoUri,
+      asset_back_url: photoUri,
     };
   }
 
