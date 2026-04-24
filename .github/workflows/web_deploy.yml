@@ -59,6 +59,7 @@ jobs:
           cp -r apps/web/clickpost/clickpost/dist/* dist/
           mkdir -p dist/admin
           cp -r apps/web/admin/out/* dist/admin/
+          touch dist/.nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
