@@ -11,6 +11,9 @@ import { Gender, PersonaData } from '@/services/avatar/types';
 import { storageService } from '@/services/StorageService';
 import { PersonaEngine } from '@/services/avatar/PersonaEngine';
 import { useTranslation } from 'react-i18next';
+import { UserService } from '@/services/UserService';
+import { AvatarService } from '@/services/avatar/AvatarService';
+import { supabase } from '@/services/SupabaseClient';
 import Animated, { 
   FadeIn, 
   FadeOut, 
@@ -277,6 +280,26 @@ export default function SignupScreen() {
       await new Promise(resolve => setTimeout(resolve, 1200));
       setFinishingStatus('success');
       
+      // [NEW] Actual Data Persistence to Supabase
+      // In a real app, you would get the user ID from supabase.auth.signUp()
+      // For this flow, we will use a demo user ID if not authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || 'demo-user-' + Math.random().toString(36).substr(2, 9);
+
+      // 1. Create/Update User Profile
+      await UserService.createProfile({
+        user_id: userId,
+        email: user?.email || formData.paymentAccount || `${formData.name}@example.com`,
+        birth_date: formData.birthDate,
+        gender: formData.gender,
+        country_code: formData.country.code,
+        total_points: 0,
+        is_pro_verified: false,
+      });
+
+      // 2. Save Avatar Metadata
+      await AvatarService.saveAvatar(userId, persona);
+
       // Save onboarded state and transition
       await storageService.setOnboarded(true);
       await new Promise(resolve => setTimeout(resolve, 1200));

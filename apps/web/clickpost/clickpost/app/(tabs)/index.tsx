@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -37,33 +37,17 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
+        <ThemedText type="subtitle">Advertiser Hub</ThemedText>
+        <Link href="/campaign/new" asChild>
+          <TouchableOpacity style={styles.campaignButton}>
+            <ThemedText type="defaultSemiBold" style={{ color: '#ffffff' }}>🚀 Create New Campaign</ThemedText>
+          </TouchableOpacity>
         </Link>
-
         <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+          Start a new marketing campaign and get AI-generated scripts in seconds.
         </ThemedText>
       </ThemedView>
+
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
         <ThemedText>
@@ -95,4 +79,16 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
   },
+  campaignButton: {
+    backgroundColor: '#6366f1',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginVertical: 10,
+    alignItems: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  }
 });

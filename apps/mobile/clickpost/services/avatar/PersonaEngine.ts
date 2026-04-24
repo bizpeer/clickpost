@@ -1,4 +1,5 @@
 import { UserInfo, PersonaData, PersonaParams } from './types';
+import { GeminiService } from '../GeminiService';
 
 export class PersonaEngine {
   /**
@@ -18,47 +19,27 @@ export class PersonaEngine {
     
     // [PHASE 1: Gemini 1.5 Pro - Demographic & Biometric Synthesis]
     console.log(`[GEMINI_PRO_1.5] Initializing synthesis for user: ${user.name}`);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    console.log("[GEMINI_PRO_1.5] Analyzing biometric data: Height " + user.height + "cm, Weight " + user.weight + "kg");
-    await new Promise(resolve => setTimeout(resolve, 600));
-    console.log(`[GEMINI_PRO_1.5] Mapping demographic heritage: ${user.countryCode} -> ${countryStyle}`);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log("[GEMINI_PRO_1.5] Generating consistent visual persona prompt package...");
-    await new Promise(resolve => setTimeout(resolve, 1200));
-
-    const personaPrompt = this.constructPrompt({
+    
+    const personaPrompt = await GeminiService.synthesizePersonaPrompt({
       name: user.name,
-      gender: user.gender,
       ageVibe,
-      countryFeatures: countryStyle,
-      nameStyle: user.name,
+      gender: user.gender,
+      countryCode: user.countryCode,
       bodyDescription,
     });
 
     // [PHASE 2: Google Veo v2.0 Ultra - High-Fidelity Rendering]
     console.log(`[VEO_ULTRA_2.0] Receiving Seed ID: #${seedId}`);
+    // 실제 Veo 연동 전까지는 시뮬레이션 지연시간 유지
     await new Promise(resolve => setTimeout(resolve, 1500));
-    console.log("[VEO_ULTRA_2.0] Processing spatial identity consistency (5-point anchor)...");
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    console.log("[VEO_ULTRA_2.0] Rendering 4K source assets (optimized to 720p for JIT delivery)...");
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    console.log("[VEO_ULTRA_2.0] Finalizing ultra-high fidelity texture mapping and global lighting...");
-    await new Promise(resolve => setTimeout(resolve, 1800));
+    console.log("[VEO_ULTRA_2.0] Rendering source assets based on AI synthesized prompt...");
 
     const currentYear = new Date().getFullYear();
     const birthYear = user.birthDate.getFullYear();
     const age = currentYear - birthYear;
 
-    // 시뮬레이션용 고퀄리티 에셋 (실제로는 Veo API가 생성한 Storage URL을 반환받습니다)
-    const baseUnsplashUrl = `https://images.unsplash.com/photo-`;
-    
-    // Seed ID를 기반으로 어느 정도 일관성 있는 이미지를 선택하도록 유도
-    const portraitIds = [
-      '1539571696357-5a69c17a67c6', // Front
-      '1506794778202-cad84cf45f1d', // Side
-      '1507003211169-0a1dd7228f2d', // Half-side
-      '1531746020798-e6953c6e8e04'  // Full-body
-    ];
+    // Supabase Storage 경로 (추후 업로드 시 사용)
+    const storagePath = `avatars/${seedId}`;
 
     return {
       seedId,
@@ -67,13 +48,30 @@ export class PersonaEngine {
       vibe: ageVibe,
       countryStyle,
       hasChangedAvatar: false,
-      asset_front_url: `${baseUnsplashUrl}${portraitIds[0]}?q=80&w=800&auto=format&fit=crop`,
-      asset_side_url: `${baseUnsplashUrl}${portraitIds[1]}?q=80&w=800&auto=format&fit=crop`,
-      asset_half_url: `${baseUnsplashUrl}${portraitIds[2]}?q=80&w=800&auto=format&fit=crop`,
-      asset_full_url: `${baseUnsplashUrl}${portraitIds[3]}?q=80&w=800&auto=format&fit=crop`,
+      // 현재는 데모를 위해 Unsplash URL을 사용하지만, 
+      // 실제 구현 시에는 getPublicUrl(storagePath + '/front.jpg') 형태로 변경됩니다.
+      asset_front_url: this.getDemoAssetUrl(seedId, 'front'),
+      asset_side_url: this.getDemoAssetUrl(seedId, 'side'),
+      asset_half_url: this.getDemoAssetUrl(seedId, 'half'),
+      asset_full_url: this.getDemoAssetUrl(seedId, 'full'),
       aesthetic: 'studio.aesthetic_premium',
       symmetry: 'studio.symmetry_perfect',
     };
+  }
+
+  /**
+   * 데모용 에셋 URL을 반환합니다.
+   * [TODO] 실제 NanoBanana/Veo API 연동 시 Supabase Storage URL로 대체
+   */
+  private static getDemoAssetUrl(seedId: string, type: string): string {
+    const baseUnsplashUrl = `https://images.unsplash.com/photo-`;
+    const portraitIds: Record<string, string> = {
+      'front': '1539571696357-5a69c17a67c6',
+      'side': '1506794778202-cad84cf45f1d',
+      'half': '1507003211169-0a1dd7228f2d',
+      'full': '1531746020798-e6953c6e8e04'
+    };
+    return `${baseUnsplashUrl}${portraitIds[type]}?q=80&w=800&auto=format&fit=crop`;
   }
 
   /**
