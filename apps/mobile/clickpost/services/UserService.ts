@@ -76,7 +76,7 @@ export class UserService {
   public static async addPoints(userId: string, points: number): Promise<void> {
     // RPC 호출을 통해 Atomic하게 업데이트하는 것이 안전하지만, 
     // 여기서는 간단하게 구현합니다. (실제 환경에선 rpc('increment_points') 권장)
-    const { data: profile } = await this.getProfile(userId);
+    const profile = await this.getProfile(userId);
     if (!profile) return;
 
     const { error } = await supabase

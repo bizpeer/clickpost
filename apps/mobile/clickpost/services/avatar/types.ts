@@ -1,6 +1,8 @@
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 
 export interface UserInfo {
+  id: string;
+  email: string;
   name: string;
   birthDate: Date;
   gender: Gender;
@@ -9,6 +11,8 @@ export interface UserInfo {
   weight: number;
   preferredPayment: string;
   paymentAccountInfo: string;
+  followerCount?: number;
+  isProVerified?: boolean;
 }
 
 export interface PersonaData {

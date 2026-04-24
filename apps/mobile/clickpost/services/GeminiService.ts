@@ -1,21 +1,19 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
-const API_KEY = process.env.Google_AI_API || '';
+const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_AI_API || process.env.Google_AI_API || '';
 
 if (!API_KEY) {
   console.warn('Google AI API Key is missing. Check your .env file.');
 }
 
-const genAI = new GoogleGenerativeAI(API_KEY);
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 export class GeminiService {
   /**
    * 사용자의 특성을 분석하여 시각적 페르소나 생성을 위한 프롬프트를 정교화합니다.
    */
   public static async synthesizePersonaPrompt(userData: any): Promise<string> {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
-    
-    const prompt = `
+    const systemPrompt = `
       You are an expert AI character designer. Based on the following user data, create a highly detailed visual description for an AI avatar.
       This description will be used as a prompt for a high-end image generation engine (Google Veo).
       
@@ -34,9 +32,11 @@ export class GeminiService {
     `;
 
     try {
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+      const result = await ai.models.generateContent({
+        model: 'gemini-3-flash',
+        contents: systemPrompt
+      });
+      return result.response.text || '';
     } catch (error) {
       console.error('Error synthesizing persona prompt:', error);
       return ''; // Fallback to basic construction logic
@@ -47,8 +47,6 @@ export class GeminiService {
    * 광고주 자료를 분석하여 3개의 샘플 광고 스크립트를 생성합니다.
    */
   public static async generateSampleScripts(campaignData: any): Promise<string[]> {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    
     const prompt = `
       Create 3 distinct short-form video scripts (15-40 seconds) for the following campaign:
       
@@ -62,9 +60,11 @@ export class GeminiService {
     `;
 
     try {
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const result = await ai.models.generateContent({
+        model: 'gemini-3-flash',
+        contents: prompt
+      });
+      const text = result.response.text || '';
       // Basic JSON extraction
       const jsonMatch = text.match(/\[.*\]/s);
       return jsonMatch ? JSON.parse(jsonMatch[0]) : [text];
@@ -74,3 +74,4 @@ export class GeminiService {
     }
   }
 }
+

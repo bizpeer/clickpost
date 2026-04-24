@@ -4,7 +4,7 @@ import { Colors } from '../../constants/theme';
 
 interface TypographyProps {
   children: React.ReactNode;
-  variant?: 'h1' | 'h2' | 'h3' | 'body' | 'caption' | 'label';
+  variant?: 'h1' | 'h2' | 'h3' | 'body' | 'caption' | 'label' | 'tiny';
   color?: string;
   bold?: boolean;
   style?: TextStyle;
@@ -36,6 +36,8 @@ export const Typography: React.FC<TypographyProps> = ({
         return { fontSize: 12, fontWeight: '400', lineHeight: 16, opacity: 0.7 };
       case 'label':
         return { fontSize: 14, fontWeight: '600', lineHeight: 20 };
+      case 'tiny':
+        return { fontSize: 10, fontWeight: '400', lineHeight: 14, opacity: 0.5 };
       default:
         return { fontSize: 16, fontWeight: '400', lineHeight: 22 };
     }

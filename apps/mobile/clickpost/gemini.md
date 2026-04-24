@@ -16,6 +16,7 @@
     - 일반 유저는 "고정 보상형 미션", 1만 명 이상 프로 인플루언서는 "광고주 직거래형(역제안) 미션" 수행.
     - 글로벌 환율 및 다양한 로컬 페이먼트 지원을 통한 글로벌 확장성.
     - **Global Video First**: YouTube, TikTok, Instagram, X 등 글로벌 숏폼 플랫폼 최적화 (15~40초 분량, 720p 품질).
+- **메인 AI 엔진**: **gemini-3-flash** (USP 추출, 스크립트 생성, Veo 프롬프트 작성의 핵심 엔진으로 활용).
 
 ---
 
@@ -123,7 +124,7 @@ graph TD
 
     subgraph "Admin & Logic Layer (Backend)"
         SystemAdmin[시스템 통합 관리자 Web]
-        Gemini[Gemini API: 샘플 3종 생성 -> 승인 후 100종 대량 파생]
+        Gemini[Gemini API (gemini-3-flash): 샘플 3종 생성 -> 승인 후 100종 대량 파생]
         Backend[Backend API & DB: LBS 및 미션 큐 관리]
         NanoBanana[NanoBanana: 아바타 생성 엔진]
         VideoEngine[Google Veo: 720p 온디맨드 영상 렌더링]
@@ -381,5 +382,101 @@ erDiagram
 - **스토리지 캐시 히트 (Cache Hit) 우선**: 기존 생성된 아바타 렌더링 파일을 우선 참조하여 불필요한 재생성 토큰 낭비 제거.
 
 ---
+
+## 12. 상세 구현 단계 및 진행 현황 (Detailed Implementation Steps & Status)
+
+본 섹션은 전체 시스템 구축을 위한 상세 단계를 정의하며, 현재 진행 상황을 실시간으로 추적합니다.
+
+### [Phase 1 & 2.1] 광고주 캠페인 빌더 및 샌드박스 (Advertiser Web Core)
+1. `[x]` 광고주용 캠페인 빌더 기본 UI 구조 설계 및 구현 (Step 1~3).
+    - Expo Router 기반 multi-step wizard UI (제목/설명 -> 타겟팅 -> 스크립트 -> 결제).
+2. `[x]` Gemini API 연동을 통한 제품 정보 기반 3종 샘플 스크립트 자동 생성 로직.
+    - `GeminiService`: 제품 이미지/설명 분석 후 Viral, Professional, Emotional 톤 제안.
+3. `[x]` AI 스크립트 샌드박스: 생성된 스크립트의 실시간 편집 및 개별 승인 인터페이스.
+    - `ScriptSandbox`: 필수 키워드 미포함 시 경고 표시 및 승인 방지 로직 포함.
+4. `[x]` CampaignService 구현: Supabase를 통한 캠페인 DRAFT 저장 및 스크립트 연동.
+    - PostgreSQL 테이블 RLS 설정 및 `campaign_scripts` 외래키 관계 구축.
+5. `[x]` 에스크로 예치(Escrow Deposit) 시뮬레이션 UI 및 결제 성공 후 캠페인 활성화(`ACTIVE`) 로직.
+    - 가상 결제 모달 구현 및 상태 전환(`DRAFT` -> `ACTIVE`).
+6. `[x]` 스크립트 샌드박스 내 필수 키워드 포함 여부 자동 검증 로직 구현.
+    - 정규표현식 및 대소문자 무시 검색 기반 실시간 피드백.
+7. `[x]` 캠페인 자료(이미지/PDF) 업로드 기능 UI 및 서비스 통합.
+    - Supabase Storage `campaign_materials` 버킷 연동.
+8. `[x]` 정밀 타겟팅 설정 UI: PostGIS 기반 LBS 좌표 선택 및 연령/성별 필터링 구체화.
+    - `CampaignData` 확장: `minAge`, `maxAge`, `gender`, `locationName`.
+9. `[x]` 다국어 통화 지원 및 실시간 환율 반영 결제 요약 화면 (20% 수수료 계산 포함).
+    - 플랫폼 수수료(Platform Fee)와 인플루언서 보상(Base Budget) 분리 표기.
+10. `[/]` 광고주 대시보드: 활성/임시저장 캠페인 목록 조회 및 상태 트래킹.
+    - `AdvertiserDashboard`: 실시간 상태 배지(Active, Draft, Closed) 및 예산 소진 현황 시각화.
+
+### [Phase 2.2] 백엔드 스크립트 변주 및 캐싱 (Backend Expansion)
+11. `[ ]` Supabase Edge Function: 승인된 스크립트 1종을 100종으로 확장하는 배치 로직.
+    - `expand-scripts` 함수: gemini-3-flash 모델을 사용해 시드 스크립트 변주 생성.
+12. `[ ]` 프롬프트 엔지니어링: 100개의 변주가 서로 다른 톤과 해시태그를 갖도록 Gemini 튜닝.
+    - System Prompt: "광고주가 승인한 키워드를 반드시 유지하며, 문장 구조와 단어 선택을 다양화하라."
+13. `[ ]` `SCRIPT_VARIATIONS` 테이블 캐싱 로직: 중복 배분 방지 및 대량 저장 최적화.
+    - `rpc` 함수 또는 일괄 `insert`를 통한 데이터 삽입 효율화.
+14. `[ ]` Google Veo 전용 영상 제작 프롬프트 자동 생성기 개발.
+    - 스크립트 내용에 최적화된 시각적 묘사(Visual Description)를 프롬프트에 추가.
+15. `[ ]` LBS 타겟 필터링 엔진: 인플루언서 위치와 캠페인 지역을 매칭하는 PostGIS 쿼리 최적화.
+    - `st_distance` 등을 활용한 반경 기반 미션 노출 로직.
+16. `[ ]` 프로 인플루언서(10K+) 대상 프리미엄 미션 푸시 알림 및 초대 시스템.
+    - `is_pro_verified` 플래그 및 팔로워 수 기반 타겟 발송.
+17. `[ ]` 예산 기반 수량 통제 로직: 예치금에 맞춰 생성 가능한 영상 수 자동 계산.
+    - `total_budget / video_reward`를 통한 참여 인원 제한(Cap).
+18. `[ ]` 시스템 관리자용 API 비용 실시간 하드 리밋(Hard Limit) 차단기.
+    - Redis 또는 DB 카운터 기반 일일 API 호출 쿼터 관리.
+19. `[ ]` 보안 강화: 모든 AI API 호출을 Edge Function으로 이관하여 API 키 은닉.
+    - 환경 변수(`GEMINI_API_KEY`) 관리 및 CORS 설정.
+20. `[ ]` Gemini API 호출 실패 시 재시도(Retry) 및 예외 처리 파이프라인.
+    - Exponential Backoff 적용 및 실패 로그 기록.
+
+### [Phase 2.3] 모바일 앱 JIT 영상 렌더링 (Mobile On-Demand)
+21. `[ ]` 인플루언서 미션 마켓플레이스 UI: 타겟팅된 캠페인 리스트 노출.
+    - 거리순, 단가순 정렬 및 카테고리 필터링.
+22. `[ ]` 미션 상세 페이지: 보상 포인트, 가이드라인 및 배정된 스크립트 미리보기.
+    - 광고주가 제공한 제품 이미지/자료 뷰어 포함.
+23. `[ ]` Just-In-Time(JIT) 영상 생성 로직: '참여하기' 클릭 시 Veo API 트리거.
+    - 실시간 생성 대기 화면(Loading State) 및 실패 시 대안 시나리오.
+24. `[ ]` NanoBanana 아바타 에셋 결합: 회원의 고정 Seed ID와 프롬프트 합성.
+    - `AVATARS` 테이블의 에셋 URL을 Veo 프롬프트의 참조 이미지로 활용.
+25. `[ ]` 모바일 영상 플레이어 및 SNS 업로드용 가이드 복사 기능.
+    - 생성된 영상을 로컬 갤러리에 저장하거나 앱 내에서 미리보기.
+26. `[ ]` SNS 게시물 URL 제출 폼 및 유효성 검사.
+    - URL 정규식 검사 및 중복 제출 방지.
+27. `[ ]` 제출된 URL의 형식(TikTok/Insta 등) 자동 판별 로직.
+    - 도메인 분석을 통한 플랫폼 태깅.
+28. `[ ]` 미션 만료(Expiration) 타이머 및 선점 취소 시스템.
+    - 24시간 내 미제출 시 미션 회수 및 타 유저에게 재배분.
+29. `[ ]` 실시간 미션 매칭 알림(FCM) 연동.
+    - 타겟 지역 진입 시 또는 신규 캠페인 등록 시 알림 발송.
+30. `[ ]` 아바타 스튜디오: 가입 정보 기반 초기 5면 에셋 생성 및 전시 UI.
+    - NanoBanana 최초 호출 및 시드 고정 로직.
+
+### [Phase 3] 검증, 정산 및 사후 관리 (Settlement & Ops)
+31. `[ ]` SNS URL 유효성 및 게시물 공개 여부 실시간 스크래퍼/검증기.
+    - 게시물 삭제 또는 비공개 전환 시 자동 감지 배치.
+32. `[ ]` 필수 키워드 포함 여부 및 AI 영상 사용 여부 자동 검증 로직.
+    - OCR 또는 텍스트 스크래핑을 통한 게시물 내용 검증.
+33. `[ ]` 포인트 트랜잭션 엔진: 원금 계산 -> 수수료 차감 -> 포인트 적립 프로세스.
+    - `POINT_TRANSACTIONS` 테이블에 로그 기록 및 유저 `total_points` 원자적(Atomic) 업데이트.
+34. `[ ]` 45일 유지 여부 추적 배치: 매일 1회 전체 제출물 상태 체크.
+    - 45일 도달 시 보너스 포인트 지급 트리거.
+35. `[ ]` 유지 보너스 자동 지급 시스템 (45일 경과 시점).
+    - `bonus_45d` 금액을 트랜잭션에 추가.
+36. `[ ]` 글로벌 페이먼트 연동: NaverPay, Grab, PayPal 등 정산 API 모의 구현.
+    - 국가별 정산 수단 매핑 및 환율 API 연동.
+37. `[ ]` 인플루언서 출금 신청 및 처리 상태 추적 UI.
+    - 출금 신청 -> 승인 대기 -> 완료 -> 입금 확인 프로세스.
+38. `[ ]` 관리자 통합 대시보드: 총 집행액, 플랫폼 수익, API 지출 지표 시각화.
+    - Chart.js 또는 Recharts를 활용한 데이터 시각화.
+39. `[ ]` 어뷰징 탐지 시스템: 동일 URL 중복 제출 및 허위 게시물 자동 필터링.
+    - IP 및 기기 ID 기반 중복 가입 및 어뷰징 차단.
+40. `[ ]` 시스템 통합 테스트 및 최종 배포 자동화 (CI/CD).
+    - GitHub Actions를 통한 백엔드/프론트엔드 자동 배포.
+
+
+---
 **최종 수정일**: 2026-04-24
 **작성자**: ClickPost 개발 팀
+

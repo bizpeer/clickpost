@@ -8,9 +8,12 @@ import {
   Alert,
   TouchableOpacity,
   Dimensions,
-  Platform
+  Platform,
+  Modal,
+  TextInput
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import Animated, { 
   FadeInDown, 
   FadeIn,
@@ -33,6 +36,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTranslation } from 'react-i18next';
+import { storageService } from '@/services/StorageService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -43,6 +47,12 @@ export default function CampaignDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [showProposalModal, setShowProposalModal] = useState(false);
+  const [proposedReward, setProposedReward] = useState('');
+  const [proposalMessage, setProposalMessage] = useState('');
+  const [isPro, setIsPro] = useState(false);
+  const [proposal, setProposal] = useState<any | null>(null);
   
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
@@ -56,6 +66,16 @@ export default function CampaignDetailScreen() {
         setCampaign(data || null);
         setLoading(false);
       });
+
+      const user = storageService.getUserInfo();
+      if (user) {
+        setIsPro(!!(user.isProVerified && (user.followerCount || 0) >= 10000));
+        
+        // 역제안 내역 조회
+        CampaignService.getProposal(id as string, user.id).then(p => {
+          setProposal(p);
+        });
+      }
     }
   }, [id]);
 
@@ -75,20 +95,125 @@ export default function CampaignDetailScreen() {
   }, [generating]);
 
   const handleGenerateVideo = async () => {
-    if (!campaign) return;
+    const user = storageService.getUserInfo();
+    if (!campaign || !user?.id) {
+      Alert.alert(t('common.error'), t('auth.login_required'));
+      return;
+    }
+
+    // 프리미엄 미션 권한 체크
+    if (campaign.isPremium) {
+      if (!isPro) {
+        Alert.alert(t('common.error'), '이 캠페인은 프로 인플루언서 전용입니다.');
+        return;
+      }
+      if (!proposal || proposal.status !== 'APPROVED') {
+        Alert.alert(t('common.error'), '광고주의 제안 승인이 필요합니다.');
+        return;
+      }
+    }
 
     setGenerating(true);
     try {
-      // Simulation of Google Veo API call
-      setTimeout(() => {
-        setVideoUrl('https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4');
-        setGenerating(false);
-        // Alert.alert(t('common.success'), t('campaign.jit_ready'));
-      }, 4000);
+      // 1. 참여 신청 및 영상 생성 트리거
+      const contentId = await CampaignService.participateInMission(user.id, campaign.id);
+      
+      if (!contentId) {
+        throw new Error("Failed to participate in mission");
+      }
+      setCurrentContentId(contentId);
+
+      // 2. 실시간 상태 구독
+      const subscription = CampaignService.subscribeToMissionStatus(contentId, (newContent) => {
+        if (newContent.status === 'READY') {
+          setVideoUrl(newContent.ai_video_url);
+          setGenerating(false);
+          subscription.unsubscribe();
+          Alert.alert(t('common.success'), t('campaign.jit_ready'));
+        } else if (newContent.status === 'FAILED') {
+          setGenerating(false);
+          subscription.unsubscribe();
+          Alert.alert(t('common.error'), t('campaign.generate_failed'));
+        }
+      });
+
     } catch (error) {
       console.error(error);
       Alert.alert(t('common.error'), t('campaign.generate_failed'));
       setGenerating(false);
+    }
+  };
+
+  const handleSubmitSNS = async () => {
+    Alert.prompt(
+      t('campaign.submit_title'),
+      t('campaign.submit_desc'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { 
+          text: t('common.submit'), 
+          onPress: async (url) => {
+            if (!url) {
+              Alert.alert(t('common.error'), t('campaign.empty_url') || 'URL을 입력해주세요.');
+              return;
+            }
+            if (!currentContentId) {
+              Alert.alert(t('common.error'), t('campaign.no_mission_active') || '활성화된 미션이 없습니다.');
+              return;
+            }
+
+            setSubmitting(true);
+            const result = await CampaignService.submitMission(currentContentId, url);
+            setSubmitting(false);
+
+            if (result.success) {
+              Alert.alert(
+                t('common.success'), 
+                `${result.message}\n\n${t('campaign.reward_granted', { amount: result.reward?.toLocaleString() }) || '정산 포인트: ₩' + result.reward?.toLocaleString()}`,
+                [{ text: t('common.ok'), onPress: () => router.replace('/(tabs)') }]
+              );
+            } else {
+              Alert.alert(t('common.error'), result.message);
+            }
+          } 
+        }
+      ],
+      'plain-text'
+    );
+  };
+
+  const handleSubmitProposal = async () => {
+    const user = storageService.getUserInfo();
+    if (!campaign || !user?.id) return;
+    
+    if (!proposedReward || isNaN(Number(proposedReward))) {
+      Alert.alert(t('common.error'), '올바른 제안 금액을 입력해주세요.');
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      const result = await CampaignService.submitProposal(
+        campaign.id, 
+        user.id, 
+        Number(proposedReward), 
+        proposalMessage
+      );
+      
+      if (result.success) {
+        // 제안 성공 시 상태 업데이트
+        const newProposal = await CampaignService.getProposal(campaign.id, user.id);
+        setProposal(newProposal);
+        setShowProposalModal(false);
+        Alert.alert(t('common.success'), result.message);
+      } else {
+        Alert.alert(t('common.error'), result.message);
+      }
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert(t('common.error'), error.message || '제안 제출 중 오류가 발생했습니다.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -145,6 +270,18 @@ export default function CampaignDetailScreen() {
               </Typography>
             </Animated.View>
           )}
+
+          {submitting && (
+            <Animated.View style={[styles.synthesisOverlay, { backgroundColor: 'rgba(26,26,26,0.9)' }]}>
+              <ActivityIndicator size="large" color={theme.primary} />
+              <Typography variant="h3" color={theme.primary} bold style={{ marginTop: 20 }}>
+                VERIFYING...
+              </Typography>
+              <Typography variant="caption" color="#FFFFFF" style={{ marginTop: 8 }}>
+                Checking SNS URL & Processing Settlement
+              </Typography>
+            </Animated.View>
+          )}
         </View>
 
         <View style={styles.content}>
@@ -171,7 +308,7 @@ export default function CampaignDetailScreen() {
               <View>
                 <Typography variant="caption" color="rgba(255,255,255,0.5)">{t('campaign.potential_earnings')}</Typography>
                 <Typography variant="h1" color={theme.primary} bold style={{ fontSize: 36 }}>
-                  ₩{campaign.reward.toLocaleString()}
+                  {campaign.currency_code === 'USD' ? '$' : '₩'}{campaign.reward.toLocaleString()}
                 </Typography>
               </View>
               <IconSymbol name="banknote.fill" size={40} color={theme.primary} style={{ opacity: 0.2 }} />
@@ -206,9 +343,15 @@ export default function CampaignDetailScreen() {
             <Card style={styles.scriptCard}>
               <IconSymbol name="quote.bubble.fill" size={24} color={theme.primary} style={styles.quoteIcon} />
               <Typography variant="body" style={styles.scriptText}>
-                "Hey everyone! Check out the new {campaign.brandName} collection. {campaign.usp[0]} is seriously next level. #ClickPost #{campaign.brandName} #AI"
+                {campaign.aiScript || `"Hey everyone! Check out the new ${campaign.brandName} collection. ${campaign.usp[0]} is seriously next level. #ClickPost #${campaign.brandName} #AI"`}
               </Typography>
-              <TouchableOpacity style={styles.copyButton}>
+              <TouchableOpacity 
+                style={styles.copyButton}
+                onPress={() => {
+                  Clipboard.setString(campaign.aiScript || "");
+                  Alert.alert(t('common.success'), t('campaign.copied'));
+                }}
+              >
                 <IconSymbol name="doc.on.doc.fill" size={14} color={theme.primary} />
               </TouchableOpacity>
             </Card>
@@ -222,6 +365,63 @@ export default function CampaignDetailScreen() {
               </View>
             </View>
             
+            {campaign.allowProposals && isPro && !videoUrl && !generating && (
+              <Animated.View entering={FadeInDown.delay(700).springify()}>
+                <Card style={styles.proSection}>
+                  <View style={styles.proHeader}>
+                    <IconSymbol name="star.bubble.fill" size={24} color={theme.primary} />
+                    <Typography variant="label" bold style={{ marginLeft: 12 }}>Pro Influencer Benefit</Typography>
+                  </View>
+                  
+                  {proposal ? (
+                    <View style={styles.proposalStatusBox}>
+                      <View style={styles.statusRow}>
+                        <View style={[styles.statusBadge, { backgroundColor: proposal.status === 'APPROVED' ? '#4CAF50' : proposal.status === 'REJECTED' ? '#F44336' : '#FF9800' }]}>
+                          <Typography variant="caption" bold color="#FFF">{proposal.status}</Typography>
+                        </View>
+                        <Typography variant="body" bold style={{ marginLeft: 12 }}>제안 금액: {campaign.currency_code === 'USD' ? '$' : '₩'}{proposal.proposed_reward.toLocaleString()}</Typography>
+                      </View>
+                      
+                      {proposal.message && (
+                        <Typography variant="caption" color={theme.icon} style={{ marginTop: 8 }}>"{proposal.message}"</Typography>
+                      )}
+                      
+                      {proposal.status === 'APPROVED' && (
+                        <Typography variant="caption" color="#4CAF50" bold style={{ marginTop: 12 }}>
+                          광고주가 제안을 승인했습니다! 이제 영상을 생성할 수 있습니다.
+                        </Typography>
+                      )}
+                      {proposal.status === 'PENDING' && (
+                        <Typography variant="caption" color="#FF9800" style={{ marginTop: 12 }}>
+                          광고주의 승인을 기다리는 중입니다.
+                        </Typography>
+                      )}
+                      {proposal.status === 'REJECTED' && (
+                        <Button 
+                          title="다시 제안하기" 
+                          variant="outline" 
+                          onPress={() => setShowProposalModal(true)}
+                          style={{ marginTop: 16 }}
+                        />
+                      )}
+                    </View>
+                  ) : (
+                    <>
+                      <Typography variant="caption" color={theme.icon} style={{ marginTop: 8 }}>
+                        팔로워 1만명 이상 프로 회원님은 광고주에게 직접 단가를 제안할 수 있습니다.
+                      </Typography>
+                      <Button 
+                        title="역제안 하기" 
+                        variant="outline" 
+                        onPress={() => setShowProposalModal(true)}
+                        style={{ marginTop: 16 }}
+                      />
+                    </>
+                  )}
+                </Card>
+              </Animated.View>
+            )}
+            
             {videoUrl ? (
               <Animated.View entering={FadeIn.springify()}>
                 <Card style={styles.videoSuccess}>
@@ -234,7 +434,7 @@ export default function CampaignDetailScreen() {
                   </View>
                   <Button 
                     title={t('campaign.upload')} 
-                    onPress={() => Alert.alert(t('common.success'), t('campaign.submission_success'))} 
+                    onPress={handleSubmitSNS} 
                     style={styles.submitButton}
                     variant="primary"
                   />
@@ -275,6 +475,59 @@ export default function CampaignDetailScreen() {
           </View>
         </Animated.View>
       )}
+      </ScreenWrapper>
+      
+      {/* Proposal Modal */}
+      <Modal
+        visible={showProposalModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowProposalModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <Animated.View entering={FadeInDown} style={styles.modalContent}>
+            <Typography variant="h2" bold>Reverse Proposal</Typography>
+            <Typography variant="caption" color={theme.icon} style={{ marginTop: 8, marginBottom: 20 }}>
+              광고주가 설정한 기본 보상보다 높은 금액을 제안해보세요.
+            </Typography>
+            
+            <Typography variant="label" style={{ marginBottom: 8 }}>제안 금액 (KRW)</Typography>
+            <TextInput
+              style={styles.input}
+              placeholder="예: 500000"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              keyboardType="numeric"
+              value={proposedReward}
+              onChangeText={setProposedReward}
+            />
+            
+            <Typography variant="label" style={{ marginTop: 16, marginBottom: 8 }}>메시지 (필수 키워드 및 전략)</Typography>
+            <TextInput
+              style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+              placeholder="광고주가 당신을 선택해야 할 이유를 적어주세요."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              multiline
+              value={proposalMessage}
+              onChangeText={setProposalMessage}
+            />
+            
+            <View style={styles.modalButtons}>
+              <Button 
+                title="취소" 
+                variant="outline" 
+                onPress={() => setShowProposalModal(false)} 
+                style={{ flex: 1, marginRight: 8 }} 
+              />
+              <Button 
+                title="제출하기" 
+                onPress={handleSubmitProposal} 
+                loading={submitting}
+                style={{ flex: 2 }} 
+              />
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </ScreenWrapper>
   );
 }
@@ -531,6 +784,59 @@ const styles = StyleSheet.create({
   stickyButton: {
     width: '60%',
     height: 56,
-  }
+  },
+  proSection: {
+    backgroundColor: 'rgba(250,225,0,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(250,225,0,0.2)',
+    padding: 20,
+    marginBottom: 32,
+    borderRadius: 24,
+  },
+  proHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#262626',
+    borderRadius: 32,
+    padding: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  input: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 16,
+    color: '#FFFFFF',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    marginTop: 32,
+  },
+  proposalStatusBox: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
 });
 

@@ -81,6 +81,7 @@ export default function SignupScreen() {
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
   const [persona, setPersona] = useState<PersonaData | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
@@ -529,7 +530,7 @@ export default function SignupScreen() {
         {t('signup.step4_subtitle')}
       </Typography>
 
-      <View style={{ flex: 1, marginTop: 24 }}>
+      <ScrollView style={{ flex: 1, marginTop: 24 }} showsVerticalScrollIndicator={false}>
         {!formData.payment ? (
           <View style={styles.paymentBentoGrid}>
             {formData.country.payments.map((p, index) => {

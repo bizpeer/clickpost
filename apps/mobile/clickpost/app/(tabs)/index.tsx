@@ -28,6 +28,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTranslation } from 'react-i18next';
 import { storageService } from '@/services/StorageService';
+import { supabase } from '@/services/SupabaseClient';
 
 const { width } = Dimensions.get('window');
 
@@ -40,18 +41,16 @@ const CATEGORIES = [
 
 export default function MarketplaceScreen() {
   const { t } = useTranslation();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const router = useRouter();
-  const colorScheme = useColorScheme() ?? 'light';
-  const theme = Colors[colorScheme];
+  const [activeMissions, setActiveMissions] = useState<any[]>([]);
 
-  const loadCampaigns = async () => {
+  const loadData = async () => {
     try {
-      const data = await CampaignService.getCampaigns();
-      setCampaigns(data);
+      const [campaignData, missionData] = await Promise.all([
+        CampaignService.getCampaigns(),
+        user?.id ? CampaignService.getMyMissions(user.id) : Promise.resolve([])
+      ]);
+      setCampaigns(campaignData);
+      setActiveMissions(missionData.filter(m => m.status === 'GENERATING' || m.status === 'READY'));
     } catch (error) {
       console.error(error);
     } finally {
@@ -64,12 +63,83 @@ export default function MarketplaceScreen() {
   const persona = storageService.getPersonaData();
 
   useEffect(() => {
-    loadCampaigns();
-  }, []);
+    loadData();
+    
+    // Subscribe to active missions for real-time status updates
+    if (user?.id) {
+      const subscription = supabase
+        .channel('active-missions')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'mission_contents',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            loadData(); // Re-fetch all data when any of the user's missions change
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [user?.id]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadCampaigns();
+    loadData();
+  };
+
+  const renderActiveMissions = () => {
+    if (activeMissions.length === 0) return null;
+
+    return (
+      <View style={styles.activeMissionsContainer}>
+        <View style={styles.sectionHeader}>
+          <Typography variant="h3" bold>{t('marketplace.active_missions')}</Typography>
+          <TouchableOpacity onPress={() => router.push('/missions')}>
+            <Typography variant="caption" color={theme.primary}>{t('common.see_all')}</Typography>
+          </TouchableOpacity>
+        </View>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.activeMissionsContent}
+        >
+          {activeMissions.map((mission, index) => (
+            <Animated.View 
+              key={mission.content_id} 
+              entering={FadeInRight.delay(200 + index * 100).springify()}
+            >
+              <TouchableOpacity 
+                style={styles.activeMissionCard}
+                onPress={() => router.push({ pathname: "/campaign/[id]", params: { id: mission.campaign_id } })}
+              >
+                <View style={styles.missionIconBox}>
+                  {mission.status === 'GENERATING' ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <IconSymbol name="play.circle.fill" size={24} color={theme.primary} />
+                  )}
+                </View>
+                <View style={styles.missionInfo}>
+                  <Typography variant="label" bold numberOfLines={1} style={{ maxWidth: 120 }}>
+                    {mission.campaigns?.title}
+                  </Typography>
+                  <Typography variant="caption" color={mission.status === 'READY' ? theme.primary : theme.icon}>
+                    {mission.status === 'GENERATING' ? 'AI Synthesizing...' : 'Video Ready!'}
+                  </Typography>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
+        </ScrollView>
+      </View>
+    );
   };
 
   const renderBentoHeader = () => (
@@ -80,6 +150,12 @@ export default function MarketplaceScreen() {
           activeOpacity={0.9}
           onPress={() => router.push('/studio')}
         >
+          <Image 
+            source={{ uri: persona?.asset_full_url || 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=800' }} 
+            style={styles.bentoBgImage}
+            blurRadius={20}
+          />
+          <View style={styles.glassOverlayMain} />
           <View style={styles.mainCardContent}>
             <View>
               <Typography variant="caption" color="rgba(255,255,255,0.6)" bold>
@@ -106,6 +182,7 @@ export default function MarketplaceScreen() {
       <View style={styles.bentoRow}>
         <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.bentoSmall}>
           <Card style={styles.statsCard}>
+            <View style={styles.glassOverlaySmall} />
             <IconSymbol name="banknote.fill" size={20} color={theme.primary} />
             <Typography variant="h3" bold style={{ marginTop: 8 }}>
               ₩12,400
@@ -120,7 +197,7 @@ export default function MarketplaceScreen() {
           <Card style={[styles.statsCard, { backgroundColor: theme.primary }]}>
             <IconSymbol name="checkmark.seal.fill" size={20} color="#1A1A1A" />
             <Typography variant="h3" color="#1A1A1A" bold style={{ marginTop: 8 }}>
-              12
+              {activeMissions.length + 5}
             </Typography>
             <Typography variant="caption" color="rgba(26,26,26,0.6)" bold>
               {t('campaign.video_generated')}
@@ -143,7 +220,7 @@ export default function MarketplaceScreen() {
           <TouchableOpacity
             style={[
               styles.categoryItem,
-              selectedCategory === cat.id && { backgroundColor: theme.primary }
+              selectedCategory === cat.id && { backgroundColor: theme.primary, borderColor: theme.primary }
             ]}
             onPress={() => setSelectedCategory(cat.id)}
           >
@@ -234,6 +311,7 @@ export default function MarketplaceScreen() {
         ListHeaderComponent={
           <>
             {renderBentoHeader()}
+            {renderActiveMissions()}
             {renderCategoryFilter()}
             <Typography variant="h2" bold style={styles.listTitle}>
               {t('marketplace.subtitle')}

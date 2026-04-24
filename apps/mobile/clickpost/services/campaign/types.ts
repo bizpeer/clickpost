@@ -13,6 +13,8 @@ export interface Campaign {
   usp: string[];
   brandName: string;
   isPremium?: boolean;
+  allowProposals?: boolean;
+  currency_code?: string;
 }
 
 export interface MissionSubmission {
