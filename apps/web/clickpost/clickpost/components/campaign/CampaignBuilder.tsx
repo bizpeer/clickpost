@@ -9,6 +9,7 @@ const STEPS = ['Basic Info', 'Targeting', 'AI Sandbox', 'Payment'];
 export function CampaignBuilder() {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [advertiserId, setAdvertiserId] = useState('00000000-0000-0000-0000-000000000000'); // Mock ID
   const [campaignData, setCampaignData] = useState<CampaignData>({
     title: '',
     description: '',
@@ -22,27 +23,81 @@ export function CampaignBuilder() {
   });
   const [generatedScripts, setGeneratedScripts] = useState<string[]>([]);
   const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   const handleNext = async () => {
-    if (currentStep === 1) {
-      // Step 2 완료 후 AI 스크립트 생성
+    if (currentStep === 0) {
+      if (!campaignData.title || !campaignData.description) {
+        alert('Please fill in the title and description.');
+        return;
+      }
+      setCurrentStep(1);
+    } else if (currentStep === 1) {
+      // Step 1 & 2 완료 후 캠페인 생성 및 AI 스크립트 생성
       setLoading(true);
       try {
+        // 1. 캠페인 데이터 저장 (DRAFT)
+        const campaign = await CampaignService.createCampaign(advertiserId, campaignData);
+        setCampaignId(campaign.campaign_id);
+
+        // 2. AI 스크립트 생성
         const scripts = await GeminiService.generateSampleScripts({
           description: campaignData.description,
           mustIncludeKeywords: campaignData.mustIncludeKeywords,
           mustExcludeKeywords: campaignData.mustExcludeKeywords,
           targetPlatform: campaignData.targetPlatform,
         });
+        
+        // 3. 샘플 스크립트 저장
+        await CampaignService.saveSampleScripts(campaign.campaign_id, scripts);
+        
         setGeneratedScripts(scripts);
         setCurrentStep(2);
       } catch (error) {
-        alert('AI 스크립트 생성 중 오류가 발생했습니다.');
+        console.error(error);
+        alert('An error occurred during campaign creation or script generation.');
       } finally {
         setLoading(false);
       }
     } else if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleApprove = async (index: number) => {
+    if (!campaignId) return;
+    
+    setLoading(true);
+    try {
+      // 실제로는 script_id를 찾아야 함. 현재는 샌드박스에서 인덱스로만 넘기므로 
+      // CampaignService.saveSampleScripts에서 반환된 ID를 매핑해야 함.
+      // 여기서는 데모를 위해 전체 스크립트 중 하나를 승인된 것으로 간주하는 로직으로 대체하거나 
+      // 간단히 다음 단계로 이동합니다.
+      setCurrentStep(3);
+    } catch (error) {
+      alert('Error approving script.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!campaignId) return;
+    
+    setPaymentLoading(true);
+    try {
+      // PayPal/Stripe API 호출 시뮬레이션
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // 캠페인 활성화
+      await CampaignService.activateCampaign(campaignId);
+      
+      alert('Payment successful! Your campaign is now ACTIVE.');
+      // 홈으로 이동하거나 상세 페이지로 이동
+    } catch (error) {
+      alert('Payment failed. Please try again.');
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
@@ -54,7 +109,7 @@ export function CampaignBuilder() {
             <Text style={styles.label}>Campaign Title</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter campaign title"
+              placeholder="e.g. Summer Collection Launch 2024"
               value={campaignData.title}
               onChangeText={(text) => setCampaignData({ ...campaignData, title: text })}
             />
@@ -63,7 +118,7 @@ export function CampaignBuilder() {
               style={[styles.input, styles.textArea]}
               multiline
               numberOfLines={4}
-              placeholder="Describe your product/service in detail"
+              placeholder="Describe your product, its unique selling points, and what kind of video you want."
               value={campaignData.description}
               onChangeText={(text) => setCampaignData({ ...campaignData, description: text })}
             />
@@ -87,13 +142,13 @@ export function CampaignBuilder() {
             <Text style={styles.label}>Must-include Keywords (Comma separated)</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Innovation, Eco-friendly"
+              placeholder="e.g. Innovation, Eco-friendly, 20% Off"
               onChangeText={(text) => setCampaignData({ 
                 ...campaignData, 
                 mustIncludeKeywords: text.split(',').map(s => s.trim()).filter(s => s) 
               })}
             />
-            <Text style={styles.label}>Budget ({campaignData.currencyCode})</Text>
+            <Text style={styles.label}>Total Budget ({campaignData.currencyCode})</Text>
             <TextInput
               style={styles.input}
               keyboardType="numeric"
@@ -106,28 +161,49 @@ export function CampaignBuilder() {
         return (
           <ScriptSandbox 
             scripts={generatedScripts} 
-            onApprove={(index) => {
-              // Approval logic
-              alert(`Script ${index + 1} approved!`);
-              setCurrentStep(3);
-            }}
+            onApprove={handleApprove}
+            onScriptChange={(newScripts) => setGeneratedScripts(newScripts)}
           />
         );
       case 3:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.title}>Final Step: Payment</Text>
+            <Text style={styles.title}>Final Step: Escrow Deposit</Text>
             <Text style={styles.description}>
-              Review your campaign and complete the payment to activate it.
+              Review your campaign details. Your budget will be held in escrow and distributed to influencers upon successful mission completion.
             </Text>
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>{campaignData.title}</Text>
-              <Text style={styles.summaryText}>Platform: {campaignData.targetPlatform}</Text>
-              <Text style={styles.summaryText}>Budget: {campaignData.totalBudget.toLocaleString()} {campaignData.currencyCode}</Text>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Campaign</Text>
+                <Text style={styles.summaryValue}>{campaignData.title}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Platform</Text>
+                <Text style={styles.summaryValue}>{campaignData.targetPlatform}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Total Budget</Text>
+                <Text style={styles.summaryValue}>{campaignData.totalBudget.toLocaleString()} {campaignData.currencyCode}</Text>
+              </View>
+              <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: '#e2e8f0', marginTop: 12, paddingTop: 12 }]}>
+                <Text style={[styles.summaryLabel, { color: '#0f172a', fontWeight: '800' }]}>Total Due</Text>
+                <Text style={[styles.summaryValue, { color: '#6366f1', fontSize: 20, fontWeight: '800' }]}>
+                  {campaignData.totalBudget.toLocaleString()} {campaignData.currencyCode}
+                </Text>
+              </View>
             </View>
-            <TouchableOpacity style={styles.paymentButton}>
-              <Text style={styles.paymentButtonText}>Pay Now</Text>
+            <TouchableOpacity 
+              style={[styles.paymentButton, paymentLoading && { opacity: 0.7 }]} 
+              onPress={handlePayment}
+              disabled={paymentLoading}
+            >
+              {paymentLoading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.paymentButtonText}>Deposit to Escrow via PayPal</Text>
+              )}
             </TouchableOpacity>
+            <Text style={styles.secureText}>🔒 Secure SSL Encrypted Payment</Text>
           </View>
         );
       default:

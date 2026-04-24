@@ -59,15 +59,32 @@ export class CampaignService {
   }
 
   /**
-   * 특정 스크립트를 승인하고 캠페인 상태를 ACTIVE로 변경할 준비를 합니다.
-   * (실제 ACTIVE 변경은 결제 완료 후 진행됨)
+   * 특정 스크립트를 승인합니다.
    */
   public static async approveScript(scriptId: string) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('campaign_scripts')
       .update({ is_approved: true })
-      .eq('script_id', scriptId);
+      .eq('script_id', scriptId)
+      .select()
+      .single();
 
     if (error) throw error;
+    return data;
+  }
+
+  /**
+   * 결제 완료 후 캠페인을 활성화(ACTIVE) 상태로 변경합니다.
+   */
+  public static async activateCampaign(campaignId: string) {
+    const { data, error } = await supabase
+      .from('campaigns')
+      .update({ status: 'ACTIVE' })
+      .eq('campaign_id', campaignId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 }
