@@ -36,21 +36,34 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: apps/web/admin/package-lock.json
 
-      - name: Install dependencies
+      - name: Install Admin dependencies
         working-directory: apps/web/admin
         run: npm install
 
-      - name: Next.js Build
+      - name: Admin Build
         working-directory: apps/web/admin
         run: npm run build
+
+      - name: Install Advertiser dependencies
+        working-directory: apps/web/clickpost/clickpost
+        run: npm install
+
+      - name: Advertiser Build
+        working-directory: apps/web/clickpost/clickpost
+        run: npm run build
+
+      - name: Prepare Deployment Directory
+        run: |
+          mkdir -p dist
+          cp -r apps/web/clickpost/clickpost/dist/* dist/
+          mkdir -p dist/admin
+          cp -r apps/web/admin/out/* dist/admin/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/web/admin/out
+          path: dist
 
   deploy:
     needs: build

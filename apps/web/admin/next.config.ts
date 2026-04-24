@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: '/clickpost',
+  basePath: '/clickpost/admin',
   /* config options here */
 };
 
