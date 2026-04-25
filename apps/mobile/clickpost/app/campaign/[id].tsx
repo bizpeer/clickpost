@@ -542,7 +542,6 @@ export default function CampaignDetailScreen() {
           </View>
         </Animated.View>
       )}
-      </ScreenWrapper>
       
       {/* Proposal Modal */}
       <Modal

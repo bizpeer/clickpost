@@ -15,6 +15,8 @@ export interface Campaign {
   isPremium?: boolean;
   allowProposals?: boolean;
   currency_code?: string;
+  aiScript?: string;
+  distance?: number;
 }
 
 export interface MissionSubmission {

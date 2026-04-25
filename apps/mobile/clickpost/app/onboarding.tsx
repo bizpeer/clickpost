@@ -33,7 +33,7 @@ export default function OnboardingScreen() {
           <View style={styles.footer}>
             <Button 
               title={t('onboarding.get_started')} 
-              onPress={() => router.replace('/signup')} 
+              onPress={() => router.replace('/login')} 
               style={styles.button}
             />
             <Typography variant="caption" color="#FFFFFF" style={styles.terms}>

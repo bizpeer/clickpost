@@ -42,6 +42,10 @@ const CATEGORIES = [
 export default function MarketplaceScreen() {
   const { t } = useTranslation();
   const [activeMissions, setActiveMissions] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   const loadData = async () => {
     try {
