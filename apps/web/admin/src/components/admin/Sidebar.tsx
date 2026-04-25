@@ -12,13 +12,15 @@ import {
   Settings, 
   Activity,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Fingerprint
 } from 'lucide-react';
 
 const menuItems = [
   { name: '대시보드', href: '/', icon: LayoutDashboard },
   { name: '캠페인 관리', href: '/campaigns', icon: Video },
   { name: '회원/아바타 관리', href: '/users', icon: Users },
+  { name: 'Seed ID 시뮬레이션', href: '/seeds', icon: Fingerprint },
   { name: '콘텐츠 검증', href: '/verification', icon: ShieldCheck },
   { name: '정산 관리', href: '/finance', icon: Wallet },
   { name: '시스템 설정', href: '/settings', icon: Settings },
