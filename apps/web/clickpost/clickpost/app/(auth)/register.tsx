@@ -5,6 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { supabase } from '../../services/SupabaseClient';
+import { Alert, ActivityIndicator } from 'react-native';
+
+import { ThemedInput } from '@/components/themed-input';
+import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 
 export default function RegisterScreen() {
   const { t } = useTranslation();
@@ -13,66 +18,94 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const textColor = useThemeColor({}, 'text');
-  const iconColor = useThemeColor({}, 'icon');
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
-    // TODO: Implement Supabase Signup logic
-    router.replace('/(tabs)');
+  const handleRegister = async () => {
+    if (!email || !password || !confirmPassword) {
+      Alert.alert('Error', t('auth.fillAll'));
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        Alert.alert('Signup Failed', error.message);
+      } else {
+        Alert.alert('Success', 'Check your email for verification link!');
+        router.replace('/(auth)/login');
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          <View style={styles.header}>
+          <Animated.View entering={FadeInUp.duration(800)} style={styles.header}>
             <ThemedText type="title" style={styles.title}>{t('auth.signup')}</ThemedText>
             <ThemedText style={styles.subtitle}>{t('dashboard.subGreeting')}</ThemedText>
-          </View>
+          </Animated.View>
 
-          <View style={styles.form}>
-            <ThemedText style={styles.label}>{t('auth.email')}</ThemedText>
-            <TextInput
-              style={[styles.input, { color: textColor, borderColor: iconColor }]}
+          <Animated.View entering={FadeInUp.delay(200).duration(800)} style={styles.form}>
+            <ThemedInput
+              label={t('auth.email')}
               placeholder="example@clickpost.com"
-              placeholderTextColor="#888"
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
               keyboardType="email-address"
             />
 
-            <ThemedText style={styles.label}>{t('auth.password')}</ThemedText>
-            <TextInput
-              style={[styles.input, { color: textColor, borderColor: iconColor }]}
+            <ThemedInput
+              label={t('auth.password')}
               placeholder="••••••••"
-              placeholderTextColor="#888"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
             />
 
-            <ThemedText style={styles.label}>{t('common.confirm') + ' ' + t('auth.password')}</ThemedText>
-            <TextInput
-              style={[styles.input, { color: textColor, borderColor: iconColor }]}
+            <ThemedInput
+              label={t('common.confirm') + ' ' + t('auth.password')}
               placeholder="••••••••"
-              placeholderTextColor="#888"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
             />
 
-            <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-              <ThemedText style={styles.registerButtonText}>{t('auth.signup')}</ThemedText>
+            <TouchableOpacity 
+              style={[styles.registerButton, loading && { opacity: 0.7 }]} 
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <ThemedText style={styles.registerButtonText}>{t('auth.signup')}</ThemedText>
+              )}
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
-          <View style={styles.footer}>
+          <Animated.View entering={FadeIn.delay(600)} style={styles.footer}>
             <ThemedText>{t('auth.hasAccount')} </ThemedText>
             <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
               <ThemedText type="link" style={styles.linkText}>{t('auth.login')}</ThemedText>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </View>
       </ScrollView>
     </ThemedView>

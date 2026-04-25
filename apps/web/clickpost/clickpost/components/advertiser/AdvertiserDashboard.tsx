@@ -5,6 +5,7 @@ import { CampaignService } from '../../services/CampaignService';
 import { Link } from 'expo-router';
 import Animated, { FadeInUp, FadeInRight, FadeIn } from 'react-native-reanimated';
 import { CampaignDetail } from './CampaignDetail';
+import { supabase } from '../../services/SupabaseClient';
 
 const { width } = Dimensions.get('window');
 const isDesktop = width > 1024;
@@ -16,7 +17,7 @@ export function AdvertiserDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
-  const [advertiserId, setAdvertiserId] = useState('00000000-0000-0000-0000-000000000000'); // Mock ID
+  const [advertiserId, setAdvertiserId] = useState<string | null>(null);
 
   const fetchCampaigns = async () => {
     try {
@@ -30,9 +31,24 @@ export function AdvertiserDashboard() {
     }
   };
 
+  const fetchSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setAdvertiserId(session.user.id);
+    } else {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchCampaigns();
+    fetchSession();
   }, []);
+
+  useEffect(() => {
+    if (advertiserId) {
+      fetchCampaigns();
+    }
+  }, [advertiserId]);
 
   const onRefresh = () => {
     setRefreshing(true);

@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View, Image } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, View, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { supabase } from '../../services/SupabaseClient';
+import { Alert, Image as RNImage } from 'react-native';
+import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
+
+import { ThemedInput } from '@/components/themed-input';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -14,39 +19,54 @@ export default function LoginScreen() {
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
-  const iconColor = useThemeColor({}, 'icon');
 
-  const handleLogin = () => {
-    // TODO: Implement Supabase Login logic
-    // For now, redirect to dashboard
-    router.replace('/(tabs)');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', t('auth.fillAll'));
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        Alert.alert('Login Failed', error.message);
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.logoContainer}>
+        <Animated.View entering={FadeInUp.duration(800)} style={styles.logoContainer}>
           <ThemedText type="title" style={styles.logoText}>ClickPost</ThemedText>
           <ThemedText style={styles.subtitle}>{t('dashboard.subGreeting')}</ThemedText>
-        </View>
+        </Animated.View>
 
-        <View style={styles.form}>
-          <ThemedText style={styles.label}>{t('auth.email')}</ThemedText>
-          <TextInput
-            style={[styles.input, { color: textColor, borderColor: iconColor }]}
+        <Animated.View entering={FadeInUp.delay(200).duration(800)} style={styles.form}>
+          <ThemedInput
+            label={t('auth.email')}
             placeholder="example@clickpost.com"
-            placeholderTextColor="#888"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
           />
 
-          <ThemedText style={styles.label}>{t('auth.password')}</ThemedText>
-          <TextInput
-            style={[styles.input, { color: textColor, borderColor: iconColor }]}
+          <ThemedInput
+            label={t('auth.password')}
             placeholder="••••••••"
-            placeholderTextColor="#888"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -56,8 +76,16 @@ export default function LoginScreen() {
             <ThemedText type="link" style={styles.linkText}>{t('auth.forgotPassword')}</ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <ThemedText style={styles.loginButtonText}>{t('auth.login')}</ThemedText>
+          <TouchableOpacity 
+            style={[styles.loginButton, loading && { opacity: 0.7 }]} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <ThemedText style={styles.loginButtonText}>{t('auth.login')}</ThemedText>
+            )}
           </TouchableOpacity>
 
           <View style={styles.dividerContainer}>
@@ -67,16 +95,20 @@ export default function LoginScreen() {
           </View>
 
           <TouchableOpacity style={styles.googleButton}>
+            <Image 
+              source={{ uri: 'https://cdn1.iconfinder.com/data/icons/google-s-logo/150/Google_Icons-09-512.png' }} 
+              style={styles.googleIcon} 
+            />
             <ThemedText style={styles.googleButtonText}>{t('auth.googleLogin')}</ThemedText>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
-        <View style={styles.footer}>
+        <Animated.View entering={FadeIn.delay(600)} style={styles.footer}>
           <ThemedText>{t('auth.noAccount')} </ThemedText>
           <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
             <ThemedText type="link" style={styles.linkText}>{t('auth.signup')}</ThemedText>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </View>
     </ThemedView>
   );
@@ -105,7 +137,8 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     textAlign: 'center',
-    opacity: 0.7,
+    opacity: 0.6,
+    marginTop: 4,
   },
   form: {
     marginBottom: 20,
@@ -134,9 +167,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#FF3B30',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   loginButtonText: {
     color: '#FFF',
@@ -170,6 +203,11 @@ const styles = StyleSheet.create({
   googleButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  googleIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 12,
   },
   footer: {
     flexDirection: 'row',

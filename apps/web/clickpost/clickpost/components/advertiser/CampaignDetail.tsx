@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Image } from 'react-native';
 import { CampaignService } from '../../services/CampaignService';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import { ThemedText } from '../themed-text';
+import { ThemedView } from '../themed-view';
 
 const { width } = Dimensions.get('window');
 const isDesktop = width > 1024;
@@ -58,192 +60,178 @@ export function CampaignDetail({ campaignId, onBack }: CampaignDetailProps) {
 
   if (!campaign) return null;
 
-  const renderOverview = () => (
-    <Animated.View entering={FadeInDown.duration(600)} style={styles.tabContent}>
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>{t('campaign.details.infoTitle')}</Text>
-        <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>{t('campaign.builder.nameLabel')}</Text>
-            <Text style={styles.infoValue}>{campaign.title}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>{t('campaign.builder.purposeLabel')}</Text>
-            <Text style={styles.infoValue}>{t(`campaign.builder.${campaign.purpose?.toLowerCase()}`)}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>{t('campaign.details.platformGoal')}</Text>
-            <Text style={styles.infoValue}>{campaign.target_platform}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>{t('campaign.builder.periodLabel')}</Text>
-            <Text style={styles.infoValue}>
-              {new Date(campaign.start_date).toLocaleDateString()} ~ {new Date(campaign.end_date).toLocaleDateString()}
-            </Text>
-          </View>
+  // Three-column layout constants
+  const renderBasicInfo = () => (
+    <Animated.View entering={FadeInDown.delay(100)} style={styles.sectionCard}>
+      <ThemedText type="subtitle" style={styles.sectionTitle}>{t('campaign.details.infoTitle')}</ThemedText>
+      <View style={styles.infoList}>
+        <View style={styles.infoItemSmall}>
+          <ThemedText style={styles.infoLabel}>{t('campaign.builder.purposeLabel')}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.infoValue}>{t(`campaign.builder.${campaign.purpose?.toLowerCase()}`)}</ThemedText>
         </View>
-      </View>
-
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, { borderLeftColor: '#6366f1' }]}>
-          <Text style={styles.statLabel}>{t('campaign.details.spentTotal')}</Text>
-          <Text style={styles.statValue}>
-            {stats?.spent_budget?.toLocaleString()} <Text style={styles.statCurrency}>{campaign.currency_code}</Text>
-          </Text>
-          <Text style={styles.statLimit}>/ {campaign.total_budget?.toLocaleString()}</Text>
+        <View style={styles.infoItemSmall}>
+          <ThemedText style={styles.infoLabel}>{t('campaign.details.platformGoal')}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.infoValue}>{campaign.target_platform}</ThemedText>
         </View>
-        <View style={[styles.statCard, { borderLeftColor: '#10b981' }]}>
-          <Text style={styles.statLabel}>{t('campaign.details.verifiedMissions')}</Text>
-          <Text style={styles.statValue}>{stats?.verified_count}</Text>
-          <Text style={styles.statLimit}>{t('campaign.details.participated')}: {stats?.mission_count}</Text>
-        </View>
-        <View style={[styles.statCard, { borderLeftColor: '#f59e0b' }]}>
-          <Text style={styles.statLabel}>{t('campaign.details.exhaustionRate')}</Text>
-          <Text style={[styles.statValue, { color: stats?.exhaustion_rate > 90 ? '#ef4444' : '#0f172a' }]}>
-            {stats?.exhaustion_rate?.toFixed(1)}%
-          </Text>
-          <View style={styles.miniProgressBar}>
-             <View style={[styles.miniProgressFill, { width: `${Math.min(stats?.exhaustion_rate || 0, 100)}%` }]} />
-          </View>
+        <View style={styles.infoItemSmall}>
+          <ThemedText style={styles.infoLabel}>{t('campaign.builder.periodLabel')}</ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.infoValue}>
+            {new Date(campaign.start_date).toLocaleDateString()} ~ {new Date(campaign.end_date).toLocaleDateString()}
+          </ThemedText>
         </View>
       </View>
     </Animated.View>
   );
 
-  const renderStrategy = () => (
-    <Animated.View entering={FadeInDown.duration(600)} style={styles.tabContent}>
-      <View style={styles.gridRow}>
-        <View style={[styles.sectionCard, { flex: 1 }]}>
-          <Text style={styles.sectionTitle}>{t('campaign.details.materialsTitle')}</Text>
-          <View style={styles.materialsList}>
-            {campaign.provided_media_urls?.length > 0 ? (
-              campaign.provided_media_urls.map((url: string, idx: number) => (
-                <View key={idx} style={styles.materialItem}>
-                  <View style={styles.materialIcon}>
-                    <Text>📄</Text>
-                  </View>
-                  <Text style={styles.materialName} numberOfLines={1}>Material_{idx + 1}</Text>
-                  <TouchableOpacity style={styles.viewButton}>
-                    <Text style={styles.viewButtonText}>{t('campaign.details.viewMaterial')}</Text>
-                  </TouchableOpacity>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.emptyText}>No materials uploaded.</Text>
-            )}
-          </View>
-        </View>
+  const renderStats = () => (
+    <Animated.View entering={FadeInDown.delay(200)} style={styles.statsContainer}>
+      <View style={[styles.statCardCompact, { borderLeftColor: '#FF3B30' }]}>
+        <ThemedText style={styles.statLabel}>{t('campaign.details.spentTotal')}</ThemedText>
+        <ThemedText type="subtitle" style={styles.statValueSmall}>
+          {stats?.spent_budget?.toLocaleString()} <ThemedText style={styles.statCurrencySmall}>{campaign.currency_code}</ThemedText>
+        </ThemedText>
+        <ThemedText style={styles.statLimitSmall}>/ {campaign.total_budget?.toLocaleString()}</ThemedText>
+      </View>
+      <View style={[styles.statCardCompact, { borderLeftColor: '#34C759' }]}>
+        <ThemedText style={styles.statLabel}>{t('campaign.details.verifiedMissions')}</ThemedText>
+        <ThemedText type="subtitle" style={styles.statValueSmall}>{stats?.verified_count}</ThemedText>
+        <ThemedText style={styles.statLimitSmall}>{t('campaign.details.participated')}: {stats?.mission_count}</ThemedText>
+      </View>
+    </Animated.View>
+  );
 
-        <View style={[styles.sectionCard, { flex: 1 }]}>
-          <Text style={styles.sectionTitle}>{t('campaign.details.keywordsTitle')}</Text>
-          <View style={styles.keywordCloud}>
-            {campaign.must_include_keywords?.map((k: string, idx: number) => (
-              <View key={idx} style={styles.essentialTag}>
-                <Text style={styles.essentialTagText}># {k}</Text>
+  const renderMaterialsAndKeywords = () => (
+    <>
+      <Animated.View entering={FadeInDown.delay(300)} style={styles.sectionCard}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>{t('campaign.details.materialsTitle')}</ThemedText>
+        <View style={styles.materialsList}>
+          {campaign.provided_media_urls?.length > 0 ? (
+            campaign.provided_media_urls.map((url: string, idx: number) => (
+              <View key={idx} style={styles.materialItem}>
+                <View style={styles.materialIcon}>
+                  <ThemedText>📄</ThemedText>
+                </View>
+                <ThemedText type="defaultSemiBold" style={styles.materialName} numberOfLines={1}>Material_{idx + 1}</ThemedText>
+                <TouchableOpacity style={styles.viewButton}>
+                  <ThemedText style={styles.viewButtonText}>{t('campaign.details.viewMaterial')}</ThemedText>
+                </TouchableOpacity>
               </View>
-            ))}
-          </View>
-          {campaign.must_exclude_keywords?.length > 0 && (
-            <>
-              <Text style={[styles.sectionTitle, { marginTop: 24, fontSize: 16 }]}>{t('campaign.details.restrictedKeywords')}</Text>
-              <View style={styles.keywordCloud}>
-                {campaign.must_exclude_keywords.map((k: string, idx: number) => (
-                  <View key={idx} style={styles.restrictedTag}>
-                    <Text style={styles.restrictedTagText}>! {k}</Text>
-                  </View>
-                ))}
-              </View>
-            </>
+            ))
+          ) : (
+            <ThemedText style={styles.emptyText}>No materials uploaded.</ThemedText>
           )}
         </View>
-      </View>
-    </Animated.View>
-  );
+      </Animated.View>
 
-  const renderMessages = () => (
-    <Animated.View entering={FadeInDown.duration(600)} style={styles.tabContent}>
-      <View style={styles.sectionCard}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('campaign.details.scriptsTitle')}</Text>
-          <View style={styles.aiBadge}>
-            <Text style={styles.aiBadgeText}>Gemini AI Powered</Text>
-          </View>
+      <Animated.View entering={FadeInDown.delay(400)} style={[styles.sectionCard, { marginTop: 24 }]}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>{t('campaign.details.keywordsTitle')}</ThemedText>
+        <View style={styles.keywordCloud}>
+          {campaign.must_include_keywords?.map((k: string, idx: number) => (
+            <View key={idx} style={styles.essentialTag}>
+              <ThemedText type="defaultSemiBold" style={styles.essentialTagText}># {k}</ThemedText>
+            </View>
+          ))}
         </View>
-        
-        {scripts.length === 0 ? (
-          <Text style={styles.emptyText}>{t('campaign.details.noScripts')}</Text>
-        ) : (
-          <View style={styles.scriptsGrid}>
-            {scripts.map((s, idx) => (
-              <View key={s.script_id} style={[styles.scriptCard, s.is_approved && styles.approvedScriptCard]}>
-                <View style={styles.scriptHeader}>
-                  <Text style={styles.scriptOption}>Option {idx + 1}</Text>
-                  {s.is_approved && (
-                    <View style={styles.approvedBadge}>
-                      <Text style={styles.approvedBadgeText}>APPROVED</Text>
-                    </View>
-                  )}
+        {campaign.must_exclude_keywords?.length > 0 && (
+          <>
+            <ThemedText type="defaultSemiBold" style={[styles.sectionSubtitle, { marginTop: 24, marginBottom: 12 }]}>{t('campaign.details.restrictedKeywords')}</ThemedText>
+            <View style={styles.keywordCloud}>
+              {campaign.must_exclude_keywords.map((k: string, idx: number) => (
+                <View key={idx} style={styles.restrictedTag}>
+                  <ThemedText type="defaultSemiBold" style={styles.restrictedTagText}>! {k}</ThemedText>
                 </View>
-                <Text style={styles.scriptText} numberOfLines={6}>{s.script_text}</Text>
-                {!s.is_approved && (
-                  <TouchableOpacity style={styles.scriptApproveButton}>
-                    <Text style={styles.scriptApproveText}>{t('campaign.details.approveAction')}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          </>
         )}
-      </View>
-    </Animated.View>
+      </Animated.View>
+    </>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.topNav}>
+    <ThemedView style={styles.container}>
+      <ThemedView style={styles.topNav}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← {t('common.back')}</Text>
+          <ThemedText type="defaultSemiBold" style={styles.backText}>← {t('common.back')}</ThemedText>
         </TouchableOpacity>
         <View style={styles.headerInfo}>
-           <Text style={styles.headerTitle}>{campaign.title}</Text>
-           <View style={[styles.statusBadge, { backgroundColor: campaign.status === 'ACTIVE' ? 'rgba(99, 102, 241, 0.1)' : '#f1f5f9' }]}>
-             <Text style={[styles.statusText, { color: campaign.status === 'ACTIVE' ? '#6366f1' : '#64748b' }]}>
+           <ThemedText type="title" style={styles.headerTitle}>{campaign.title}</ThemedText>
+           <View style={[styles.statusBadge, { backgroundColor: campaign.status === 'ACTIVE' ? 'rgba(255, 59, 48, 0.1)' : '#f1f5f9' }]}>
+             <ThemedText type="defaultSemiBold" style={[styles.statusText, { color: campaign.status === 'ACTIVE' ? '#FF3B30' : '#64748b' }]}>
                {t(`campaign.status.${campaign.status}`)}
-             </Text>
+             </ThemedText>
            </View>
         </View>
-        <TouchableOpacity style={styles.manageButton}>
-          <Text style={styles.manageButtonText}>{t('campaign.details.manageCampaign')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.tabsContainer}>
-        {(['overview', 'strategy', 'messages'] as TabType[]).map((tab) => (
-          <TouchableOpacity 
-            key={tab} 
-            style={[styles.tab, activeTab === tab && styles.activeTab]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-              {t(`campaign.details.section${tab.charAt(0).toUpperCase() + tab.slice(1)}`)}
-            </Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.manageButton}>
+            <ThemedText type="defaultSemiBold" style={styles.manageButtonText}>{t('campaign.details.manageCampaign')}</ThemedText>
           </TouchableOpacity>
-        ))}
-      </View>
+        </View>
+      </ThemedView>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {activeTab === 'overview' && renderOverview()}
-        {activeTab === 'strategy' && renderStrategy()}
-        {activeTab === 'messages' && renderMessages()}
+        <View style={isDesktop ? styles.threeColumnLayout : styles.mobileLayout}>
+          {/* LEFT COLUMN: BASIC INFO & STATS */}
+          <View style={styles.leftColumn}>
+            {renderBasicInfo()}
+            {renderStats()}
+          </View>
+
+          {/* RIGHT COLUMN: MATERIALS & KEYWORDS */}
+          <View style={styles.rightColumn}>
+            {renderMaterialsAndKeywords()}
+          </View>
+        </View>
+
+        {/* BOTTOM SECTION: AI SCRIPTS (FULL WIDTH) */}
+        <Animated.View entering={FadeInDown.delay(500)} style={styles.bottomSection}>
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <ThemedText type="subtitle" style={styles.sectionTitle}>{t('campaign.details.scriptsTitle')}</ThemedText>
+                <ThemedText style={styles.sectionDesc}>AI-powered script variations tailored for your campaign</ThemedText>
+              </View>
+              <View style={styles.aiBadge}>
+                <ThemedText type="defaultSemiBold" style={styles.aiBadgeText}>Gemini AI Active</ThemedText>
+              </View>
+            </View>
+            
+            {scripts.length === 0 ? (
+              <ThemedText style={styles.emptyText}>{t('campaign.details.noScripts')}</ThemedText>
+            ) : (
+              <View style={styles.scriptsGrid}>
+                {scripts.map((s, idx) => (
+                  <View key={s.script_id} style={[styles.scriptCard, s.is_approved && styles.approvedScriptCard]}>
+                    <View style={styles.scriptHeader}>
+                      <ThemedText style={styles.scriptOption}>Option {idx + 1}</ThemedText>
+                      {s.is_approved && (
+                        <View style={styles.approvedBadge}>
+                          <ThemedText type="defaultSemiBold" style={styles.approvedBadgeText}>APPROVED</ThemedText>
+                        </View>
+                      )}
+                    </View>
+                    <ThemedText style={styles.scriptText}>{s.script_text}</ThemedText>
+                    {!s.is_approved && (
+                      <TouchableOpacity style={styles.scriptApproveButton}>
+                        <ThemedText type="defaultSemiBold" style={styles.scriptApproveText}>{t('campaign.details.approveAction')}</ThemedText>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F2F2F7', // iOS Light Gray Background
   },
   loadingContainer: {
     flex: 1,
@@ -261,14 +249,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
-  backButton: {
-    padding: 8,
-  },
-  backText: {
-    color: '#64748b',
-    fontWeight: '700',
-    fontSize: 16,
-  },
   headerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -279,6 +259,10 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#0f172a',
     letterSpacing: -0.5,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
   },
   statusBadge: {
     paddingHorizontal: 12,
@@ -300,27 +284,13 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
   },
-  tabsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: isDesktop ? 64 : 20,
-    backgroundColor: '#ffffff',
-    gap: 32,
+  backButton: {
+    padding: 8,
   },
-  tab: {
-    paddingVertical: 16,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#6366f1',
-  },
-  tabText: {
-    fontSize: 16,
+  backText: {
+    color: '#64748b',
     fontWeight: '700',
-    color: '#94a3b8',
-  },
-  activeTabText: {
-    color: '#6366f1',
+    fontSize: 16,
   },
   scrollContent: {
     padding: isDesktop ? 64 : 20,
@@ -328,7 +298,20 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
   },
-  tabContent: {
+  threeColumnLayout: {
+    flexDirection: 'row',
+    gap: 32,
+  },
+  mobileLayout: {
+    flexDirection: 'column',
+    gap: 24,
+  },
+  leftColumn: {
+    flex: 1.2,
+    gap: 24,
+  },
+  rightColumn: {
+    flex: 1,
     gap: 24,
   },
   sectionCard: {
@@ -343,16 +326,153 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1e293b',
+    marginBottom: 24,
+    color: '#1C1C1E',
+  },
+  sectionSubtitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  sectionDesc: {
+    fontSize: 14,
+    color: '#64748b',
+    fontWeight: '500',
+    marginTop: -16,
     marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 32,
+  },
+  infoList: {
+    gap: 20,
+  },
+  infoItemSmall: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    paddingBottom: 16,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  infoValue: {
+    fontSize: 16,
+    color: '#1e293b',
+    fontWeight: '700',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  statCardCompact: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 24,
+    borderLeftWidth: 4,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontWeight: '800',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  statValueSmall: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0f172a',
+  },
+  statCurrencySmall: {
+    fontSize: 14,
+    color: '#94a3b8',
+  },
+  statLimitSmall: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  materialsList: {
+    gap: 12,
+  },
+  materialItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    padding: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    gap: 12,
+  },
+  materialIcon: {
+    width: 36,
+    height: 36,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  materialName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  viewButton: {
+    backgroundColor: '#ffffff',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  viewButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6366f1',
+  },
+  keywordCloud: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  essentialTag: {
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  essentialTagText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6366f1',
+  },
+  restrictedTag: {
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  restrictedTagText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ef4444',
+  },
+  bottomSection: {
+    marginTop: 32,
+    width: '100%',
   },
   aiBadge: {
     backgroundColor: 'rgba(99, 102, 241, 0.08)',
@@ -366,156 +486,12 @@ const styles = StyleSheet.create({
     color: '#6366f1',
     textTransform: 'uppercase',
   },
-  infoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 32,
-  },
-  infoItem: {
-    minWidth: 240,
-  },
-  infoLabel: {
-    fontSize: 13,
-    color: '#94a3b8',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  infoValue: {
-    fontSize: 16,
-    color: '#1e293b',
-    fontWeight: '700',
-  },
-  statsRow: {
-    flexDirection: isDesktop ? 'row' : 'column',
-    gap: 24,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 24,
-    borderRadius: 24,
-    borderLeftWidth: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: '#94a3b8',
-    fontWeight: '800',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#0f172a',
-    letterSpacing: -0.5,
-  },
-  statCurrency: {
-    fontSize: 16,
-    color: '#94a3b8',
-    fontWeight: '600',
-  },
-  statLimit: {
-    fontSize: 13,
-    color: '#64748b',
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  miniProgressBar: {
-    height: 6,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 3,
-    marginTop: 12,
-    overflow: 'hidden',
-  },
-  miniProgressFill: {
-    height: '100%',
-    backgroundColor: '#6366f1',
-    borderRadius: 3,
-  },
-  gridRow: {
-    flexDirection: isDesktop ? 'row' : 'column',
-    gap: 24,
-  },
-  materialsList: {
-    gap: 16,
-  },
-  materialItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f8fafc',
-    borderRadius: 16,
-    gap: 16,
-  },
-  materialIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  materialName: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  viewButton: {
-    backgroundColor: '#ffffff',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  viewButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6366f1',
-  },
-  keywordCloud: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  essentialTag: {
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  essentialTagText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#6366f1',
-  },
-  restrictedTag: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  restrictedTagText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#ef4444',
-  },
   scriptsGrid: {
     flexDirection: isDesktop ? 'row' : 'column',
-    flexWrap: 'wrap',
-    gap: 20,
+    gap: 24,
   },
   scriptCard: {
-    width: isDesktop ? '31%' : '100%',
+    flex: 1,
     backgroundColor: '#f8fafc',
     padding: 24,
     borderRadius: 24,
@@ -577,4 +553,5 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   }
 });
+
 

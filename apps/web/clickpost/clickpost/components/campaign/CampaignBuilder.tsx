@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { ThemedText } from '@/components/themed-text';
 import { router } from 'expo-router';
 import { CampaignData, CampaignService } from '../../services/CampaignService';
 import { GeminiService } from '../../services/GeminiService';
@@ -8,7 +9,8 @@ import { ScriptSandbox } from './ScriptSandbox';
 
 import { useTranslation } from 'react-i18next';
 
-const STEPS_KEYS = ['builder.basicInfo', 'builder.targeting', 'builder.aiSandbox', 'builder.payment'];
+const STEPS = ['builder.basicInfo', 'builder.targeting', 'builder.aiSandbox', 'builder.payment'];
+import { ThemedInput } from '@/components/themed-input';
 
 export function CampaignBuilder() {
   const { t } = useTranslation();
@@ -17,11 +19,14 @@ export function CampaignBuilder() {
   const [advertiserId, setAdvertiserId] = useState<string | null>(null);
   const [keywordInput, setKeywordInput] = useState('');
   
-  React.useEffect(() => {
+    React.useEffect(() => {
     const fetchUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setAdvertiserId(session.user.id);
+      } else {
+        // No session found, redirect to login
+        router.replace('/(auth)/login');
       }
     };
     fetchUser();
@@ -213,9 +218,8 @@ export function CampaignBuilder() {
       case 0:
         return (
           <View style={styles.stepContainer}>
-            <ThemedText style={styles.label}>{t('campaign.builder.nameLabel')}</ThemedText>
-            <TextInput
-              style={styles.input}
+            <ThemedInput
+              label={t('campaign.builder.nameLabel')}
               placeholder="e.g. Summer Collection Launch 2024"
               value={campaignData.title}
               onChangeText={(text) => setCampaignData({ ...campaignData, title: text })}
@@ -244,15 +248,15 @@ export function CampaignBuilder() {
               <View style={[styles.column, { flex: 1 }]}>
                 <ThemedText style={styles.label}>{t('campaign.builder.periodLabel')}</ThemedText>
                 <View style={styles.row}>
-                  <TextInput
-                    style={[styles.input, { flex: 1 }]}
+                  <ThemedInput
+                    containerStyle={{ flex: 1 }}
                     type="date"
                     value={campaignData.startDate}
                     onChangeText={(text) => setCampaignData({ ...campaignData, startDate: text })}
                   />
                   <ThemedText style={{ alignSelf: 'center', marginHorizontal: 10 }}>~</ThemedText>
-                  <TextInput
-                    style={[styles.input, { flex: 1 }]}
+                  <ThemedInput
+                    containerStyle={{ flex: 1 }}
                     type="date"
                     value={campaignData.endDate}
                     onChangeText={(text) => setCampaignData({ ...campaignData, endDate: text })}
@@ -261,9 +265,8 @@ export function CampaignBuilder() {
               </View>
             </View>
 
-            <ThemedText style={styles.label}>{t('dashboard.subGreeting')}</ThemedText>
-            <TextInput
-              style={[styles.input, styles.textArea]}
+            <ThemedInput
+              label={t('dashboard.subGreeting')}
               multiline
               numberOfLines={4}
               placeholder="Describe your product, its unique selling points, and what kind of video you want."
@@ -313,6 +316,42 @@ export function CampaignBuilder() {
                 )}
               </View>
             </View>
+
+            <View style={styles.column}>
+              <View style={styles.keywordInputContainer}>
+                <ThemedInput
+                  containerStyle={{ flex: 1 }}
+                  label="Keywords (Press Enter to add)"
+                  placeholder="e.g. Eco-friendly, Sale"
+                  value={keywordInput}
+                  onChangeText={setKeywordInput}
+                  onSubmitEditing={() => {
+                    if (keywordInput.trim() && !campaignData.mustIncludeKeywords.includes(keywordInput.trim())) {
+                      setCampaignData({
+                        ...campaignData,
+                        mustIncludeKeywords: [...campaignData.mustIncludeKeywords, keywordInput.trim()]
+                      });
+                      setKeywordInput('');
+                    }
+                  }}
+                />
+              </View>
+              <View style={styles.tagCloud}>
+                {campaignData.mustIncludeKeywords.map((tag) => (
+                  <View key={tag} style={styles.activeTag}>
+                    <ThemedText style={styles.activeTagText}>#{tag}</ThemedText>
+                    <TouchableOpacity 
+                      onPress={() => setCampaignData({
+                        ...campaignData,
+                        mustIncludeKeywords: campaignData.mustIncludeKeywords.filter(t => t !== tag)
+                      })}
+                    >
+                      <ThemedText style={styles.removeTag}>×</ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </View>
           </View>
         );
       case 1:
@@ -351,9 +390,8 @@ export function CampaignBuilder() {
 
             <View style={styles.rowInputs}>
               <View style={{ flex: 1 }}>
-                <ThemedText style={styles.label}>Min Age</ThemedText>
-                <TextInput
-                  style={styles.input}
+                <ThemedInput
+                  label="Min Age"
                   keyboardType="numeric"
                   value={campaignData.targetFilters.minAge.toString()}
                   onChangeText={(text) => setCampaignData({ 
@@ -363,9 +401,8 @@ export function CampaignBuilder() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <ThemedText style={styles.label}>Max Age</ThemedText>
-                <TextInput
-                  style={styles.input}
+                <ThemedInput
+                  label="Max Age"
                   keyboardType="numeric"
                   value={campaignData.targetFilters.maxAge.toString()}
                   onChangeText={(text) => setCampaignData({ 
@@ -392,9 +429,8 @@ export function CampaignBuilder() {
                 </TouchableOpacity>
               </View>
               <View style={styles.column}>
-                <ThemedText style={styles.label}>Target Region Name</ThemedText>
-                <TextInput
-                  style={styles.input}
+                <ThemedInput
+                  label="Target Region Name"
                   placeholder="e.g. Seoul, Gangnam"
                   value={campaignData.targetFilters.locationName}
                   onChangeText={(text) => setCampaignData({ 
@@ -407,9 +443,8 @@ export function CampaignBuilder() {
 
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
-                <ThemedText style={styles.label}>{t('campaign.builder.budgetLabel')}</ThemedText>
-                <TextInput
-                  style={styles.input}
+                <ThemedInput
+                  label={t('campaign.builder.budgetLabel')}
                   keyboardType="numeric"
                   value={campaignData.totalBudget.toString()}
                   onChangeText={(text) => setCampaignData({ ...campaignData, totalBudget: parseInt(text) || 0 })}
@@ -500,7 +535,7 @@ export function CampaignBuilder() {
       <View style={styles.header}>
         <ThemedText style={styles.mainTitle}>{t('campaign.builder.title')}</ThemedText>
         <View style={styles.stepper}>
-          {STEPS_KEYS.map((key, i) => (
+          {STEPS.map((key, i) => (
             <View key={key} style={styles.stepItem}>
               <View style={[styles.stepCircle, currentStep >= i && styles.activeStepCircle]}>
                 <ThemedText style={[styles.stepNumber, currentStep >= i && styles.activeStepNumber]}>{i + 1}</ThemedText>
