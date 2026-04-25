@@ -223,7 +223,7 @@ export function CampaignDetail({ campaignId, onBack }: CampaignDetailProps) {
           </View>
         </Animated.View>
       </ScrollView>
-    </View>
+    </ThemedView>
   );
 
 }
