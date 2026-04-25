@@ -32,6 +32,7 @@
       "EXHAUSTED": "Exhausted",
       "CLOSED": "Closed"
     },
+    "detail": {
       "budgetExhaustion": "Budget Exhaustion Status",
       "sectionInfo": "Campaign Overview",
       "sectionStrategy": "Strategy & Materials",

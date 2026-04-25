@@ -32,6 +32,7 @@
       "EXHAUSTED": "소진완료",
       "CLOSED": "종료"
     },
+    "detail": {
       "budgetExhaustion": "예산 소진 현황",
       "sectionInfo": "캠페인 개요",
       "sectionStrategy": "전략 및 자료",
@@ -41,11 +42,11 @@
       "keywordsTitle": "타겟 키워드",
       "scriptsTitle": "승인된 AI 스크립트",
       "noScripts": "승인된 스크립트가 없습니다.",
-      "approveAction": "승인하기",
+      "approveAction": "승인",
       "viewMaterial": "자료 보기",
       "restrictedKeywords": "제외 키워드",
-      "platformGoal": "목표 플랫폼",
-      "missionReward": "건당 보상"
+      "platformGoal": "타겟 플랫폼",
+      "missionReward": "미션 당 보상"
     },
     "type": {
       "aiAvatar": "AI 아바타"
