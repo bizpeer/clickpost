@@ -36,6 +36,48 @@ export function ScriptSandbox({
     return { missing, restricted, isValid: missing.length === 0 && restricted.length === 0 };
   };
 
+  const renderHighlightedText = (text: string) => {
+    if (!text) return <Text style={styles.highlightBaseText}>{text}</Text>;
+
+    // 정규표현식으로 모든 키워드 추출
+    const allKeywords = [...mustIncludeKeywords, ...mustExcludeKeywords]
+      .filter(k => k.trim().length > 0)
+      .sort((a, b) => b.length - a.length); // 긴 키워드 우선 매칭
+
+    if (allKeywords.length === 0) {
+      return <Text style={styles.highlightBaseText}>{text}</Text>;
+    }
+
+    const pattern = new RegExp(`(${allKeywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+    const parts = text.split(pattern);
+
+    return (
+      <Text style={styles.highlightBaseText}>
+        {parts.map((part, i) => {
+          const lowerPart = part.toLowerCase();
+          const isEssential = mustIncludeKeywords.some(k => k.toLowerCase() === lowerPart);
+          const isRestricted = mustExcludeKeywords.some(k => k.toLowerCase() === lowerPart);
+
+          if (isEssential) {
+            return (
+              <Text key={i} style={styles.essentialHighlight}>
+                {part}
+              </Text>
+            );
+          }
+          if (isRestricted) {
+            return (
+              <Text key={i} style={styles.restrictedHighlight}>
+                {part}
+              </Text>
+            );
+          }
+          return <Text key={i}>{part}</Text>;
+        })}
+      </Text>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>AI Script Sandbox</Text>
@@ -75,14 +117,24 @@ export function ScriptSandbox({
                 </View>
               </View>
               
-              <TextInput
-                style={[styles.scriptInput, !validation.isValid && styles.invalidInput]}
-                multiline
-                value={script}
-                onChangeText={(text) => handleScriptChange(text, index)}
-                onFocus={() => setSelectedIndex(index)}
-                placeholder="Type your script here..."
-              />
+              <View style={styles.inputWrapper}>
+                <View style={styles.highlightLayer} pointerEvents="none">
+                  {renderHighlightedText(script)}
+                </View>
+                <TextInput
+                  style={[
+                    styles.scriptInput, 
+                    !validation.isValid && styles.invalidInput,
+                    { color: 'transparent', caretColor: '#1e293b' } as any // Caret visibility in web
+                  ]}
+                  multiline
+                  value={script}
+                  onChangeText={(text) => handleScriptChange(text, index)}
+                  onFocus={() => setSelectedIndex(index)}
+                  placeholder="Type your script here..."
+                  placeholderTextColor="#94a3b8"
+                />
+              </View>
 
               {(!validation.isValid && isSelected) && (
                 <View style={styles.validationBox}>
@@ -220,12 +272,45 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     height: 240,
     textAlignVertical: 'top',
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'transparent',
     borderRadius: 20,
     padding: 20,
-    marginBottom: 24,
     borderWidth: 1,
     borderColor: '#f1f5f9',
+  },
+  inputWrapper: {
+    position: 'relative',
+    backgroundColor: '#f8fafc',
+    borderRadius: 20,
+    marginBottom: 24,
+    minHeight: 240,
+    overflow: 'hidden',
+  },
+  highlightLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 20,
+    backgroundColor: 'transparent',
+  },
+  highlightBaseText: {
+    fontSize: 16,
+    lineHeight: 26,
+    color: '#1e293b',
+  },
+  essentialHighlight: {
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    color: '#4338ca',
+    fontWeight: '700',
+    borderRadius: 4,
+  },
+  restrictedHighlight: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    color: '#b91c1c',
+    fontWeight: '700',
+    borderRadius: 4,
   },
   approveButton: {
     backgroundColor: '#f1f5f9',
