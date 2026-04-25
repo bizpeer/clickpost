@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Text } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { router } from 'expo-router';
 import { CampaignData, CampaignService } from '../../services/CampaignService';
@@ -796,6 +796,39 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   activeChipText: {
+    color: '#ffffff',
+  },
+  activeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  activeTagText: {
+    color: '#6366f1',
+    fontSize: 14,
+    fontWeight: '700',
+    marginRight: 6,
+  },
+  removeTag: {
+    color: '#6366f1',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  activeStep: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  stepText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  activeStepText: {
     color: '#ffffff',
   },
   footer: {

@@ -109,7 +109,7 @@ export class CampaignService {
    * 결제 완료 후 캠페인을 활성화(ACTIVE) 상태로 변경합니다.
    */
   public static async activateCampaign(campaignId: string) {
-    const { data, error } = await supabase
+    const { data: campaign, error } = await supabase
       .from('campaigns')
       .update({ status: 'ACTIVE' })
       .eq('campaign_id', campaignId)
@@ -117,7 +117,13 @@ export class CampaignService {
       .single();
 
     if (error) throw error;
-    return data;
+
+    // 알림 발송 트리거 (내근 사용자 및 프로 인플루언서 대상)
+    supabase.functions.invoke('notify-campaign-activation', {
+      body: { campaign_id: campaignId }
+    }).catch(console.error);
+
+    return campaign;
   }
 
   /**

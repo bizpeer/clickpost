@@ -8,6 +8,7 @@ export type ThemedInputProps = TextInputProps & {
   error?: string;
   lightColor?: string;
   darkColor?: string;
+  containerStyle?: any;
 };
 
 export function ThemedInput({
@@ -16,6 +17,7 @@ export function ThemedInput({
   style,
   lightColor,
   darkColor,
+  containerStyle,
   onFocus,
   onBlur,
   ...rest
@@ -35,7 +37,7 @@ export function ThemedInput({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       {label && <ThemedText style={styles.label}>{label}</ThemedText>}
       <View style={[
         styles.inputWrapper,

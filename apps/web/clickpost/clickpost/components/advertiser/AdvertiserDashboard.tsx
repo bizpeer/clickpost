@@ -445,6 +445,11 @@ const styles = StyleSheet.create({
   cardMain: {
     padding: 28,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
   titleArea: {
     flex: 1,
     marginRight: 12,
