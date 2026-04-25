@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     opacity: 0.15,
     filter: 'blur(80px)',
     zIndex: 0,
-  },
+  } as any,
   blob1: {
     backgroundColor: '#FF3B30',
     top: -100,

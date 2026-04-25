@@ -73,6 +73,7 @@ export function CampaignBuilder() {
       // Step 1 & 2 완료 후 캠페인 생성 및 AI 스크립트 생성
       setLoading(true);
       try {
+        if (!advertiserId) throw new Error('Advertiser ID is missing');
         // 1. 캠페인 데이터 저장 (DRAFT)
         const campaign = await CampaignService.createCampaign(advertiserId, campaignData);
         setCampaignId(campaign.campaign_id);
@@ -199,7 +200,7 @@ export function CampaignBuilder() {
       await CampaignService.activateCampaign(campaignId);
       
       // 스크립트 변주 생성 (비동기 트리거)
-      if (approvedScriptId) {
+      if (campaignId && approvedScriptId) {
         CampaignService.expandApprovedScript(campaignId, approvedScriptId).catch(console.error);
       }
 
