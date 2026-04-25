@@ -6,12 +6,16 @@ import { GeminiService } from '../../services/GeminiService';
 import { supabase } from '../../services/SupabaseClient';
 import { ScriptSandbox } from './ScriptSandbox';
 
-const STEPS = ['Basic Info', 'Targeting', 'AI Sandbox', 'Payment'];
+import { useTranslation } from 'react-i18next';
+
+const STEPS_KEYS = ['builder.basicInfo', 'builder.targeting', 'builder.aiSandbox', 'builder.payment'];
 
 export function CampaignBuilder() {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [advertiserId, setAdvertiserId] = useState<string | null>(null);
+  const [keywordInput, setKeywordInput] = useState('');
   
   React.useEffect(() => {
     const fetchUser = async () => {
@@ -26,6 +30,9 @@ export function CampaignBuilder() {
   const [campaignData, setCampaignData] = useState<CampaignData>({
     title: '',
     description: '',
+    purpose: 'AWARENESS',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     totalBudget: 1000000,
     currencyCode: 'KRW',
     targetFilters: { 
@@ -128,37 +135,51 @@ export function CampaignBuilder() {
   };
 
   const handleFileUpload = async () => {
-    // Web 환경을 위해 input 요소를 동적으로 생성하여 파일 피커를 엽니다.
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*,application/pdf';
+    input.accept = 'image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    input.multiple = true;
     
     input.onchange = async (e: any) => {
-      const file = e.target.files[0];
-      if (!file) return;
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
 
       try {
         setLoading(true);
-        const fileName = `${Date.now()}_${file.name}`;
-        const path = `${advertiserId}/${fileName}`;
-        
-        const publicUrl = await CampaignService.uploadMaterial(file, path);
+        const newUrls = [];
+        for (const file of files as any[]) {
+          if (file.size > 500 * 1024 * 1024) {
+            alert(`File ${file.name} exceeds 500MB limit.`);
+            continue;
+          }
+          const fileName = `${Date.now()}_${file.name}`;
+          const path = `${advertiserId}/${fileName}`;
+          const publicUrl = await CampaignService.uploadMaterial(file, path);
+          newUrls.push(publicUrl);
+        }
         
         setCampaignData(prev => ({
           ...prev,
-          providedMediaUrls: [...prev.providedMediaUrls, publicUrl]
+          providedMediaUrls: [...prev.providedMediaUrls, ...newUrls]
         }));
         
-        alert('File uploaded successfully!');
+        alert('Files uploaded successfully!');
       } catch (error) {
         console.error('Upload error:', error);
-        alert('Failed to upload file. Please check storage permissions.');
+        alert('Failed to upload files.');
       } finally {
         setLoading(false);
       }
     };
     
     input.click();
+  };
+
+  const removeFile = (url: string) => {
+    setCampaignData(prev => ({
+      ...prev,
+      providedMediaUrls: prev.providedMediaUrls.filter(u => u !== url)
+    }));
   };
 
   const handlePayment = async () => {
@@ -192,14 +213,55 @@ export function CampaignBuilder() {
       case 0:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.label}>Campaign Title</Text>
+            <ThemedText style={styles.label}>{t('campaign.builder.nameLabel')}</ThemedText>
             <TextInput
               style={styles.input}
               placeholder="e.g. Summer Collection Launch 2024"
               value={campaignData.title}
               onChangeText={(text) => setCampaignData({ ...campaignData, title: text })}
             />
-            <Text style={styles.label}>Product Description</Text>
+            
+            <View style={styles.row}>
+              <View style={[styles.column, { flex: 1 }]}>
+                <ThemedText style={styles.label}>{t('campaign.builder.purposeLabel')}</ThemedText>
+                <View style={styles.pickerContainer}>
+                  {(['AWARENESS', 'CONVERSION', 'POLITICAL'] as const).map((p) => (
+                    <TouchableOpacity
+                      key={p}
+                      style={[styles.chip, campaignData.purpose === p && styles.activeChip]}
+                      onPress={() => setCampaignData({ ...campaignData, purpose: p })}
+                    >
+                      <ThemedText style={[styles.chipText, campaignData.purpose === p && styles.activeChipText]}>
+                        {t(`campaign.builder.${p.toLowerCase()}`)}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.column, { flex: 1 }]}>
+                <ThemedText style={styles.label}>{t('campaign.builder.periodLabel')}</ThemedText>
+                <View style={styles.row}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    type="date"
+                    value={campaignData.startDate}
+                    onChangeText={(text) => setCampaignData({ ...campaignData, startDate: text })}
+                  />
+                  <ThemedText style={{ alignSelf: 'center', marginHorizontal: 10 }}>~</ThemedText>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    type="date"
+                    value={campaignData.endDate}
+                    onChangeText={(text) => setCampaignData({ ...campaignData, endDate: text })}
+                  />
+                </View>
+              </View>
+            </View>
+
+            <ThemedText style={styles.label}>{t('dashboard.subGreeting')}</ThemedText>
             <TextInput
               style={[styles.input, styles.textArea]}
               multiline
@@ -208,38 +270,46 @@ export function CampaignBuilder() {
               value={campaignData.description}
               onChangeText={(text) => setCampaignData({ ...campaignData, description: text })}
             />
-            <Text style={styles.label}>Campaign Materials (Images/PDF)</Text>
+            
+            <ThemedText style={styles.label}>{t('campaign.builder.materialLabel')}</ThemedText>
             <TouchableOpacity 
               style={styles.uploadBox}
               onPress={handleFileUpload}
             >
-              <Text style={styles.uploadText}>+ Upload Product Photos or PDF Guide</Text>
-              {campaignData.providedMediaUrls.length > 0 && (
-                <Text style={styles.uploadCount}>{campaignData.providedMediaUrls.length} files selected</Text>
-              )}
+              <ThemedText style={styles.uploadText}>{t('campaign.builder.dropzoneHint')}</ThemedText>
+              <View style={styles.previewGrid}>
+                {campaignData.providedMediaUrls.map((url, i) => (
+                  <View key={i} style={styles.previewItem}>
+                    <Image source={{ uri: url }} style={styles.previewThumb} />
+                    <TouchableOpacity style={styles.removeBtn} onPress={() => removeFile(url)}>
+                      <ThemedText style={styles.removeBtnText}>×</ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
             </TouchableOpacity>
 
             <View style={styles.row}>
               <View style={[styles.column, { flex: 1 }]}>
-                <Text style={styles.label}>Mission Type</Text>
+                <ThemedText style={styles.label}>Mission Type</ThemedText>
                 <View style={styles.row}>
                   <TouchableOpacity
                     style={[styles.chip, !campaignData.isPremium && styles.activeChip]}
                     onPress={() => setCampaignData({ ...campaignData, isPremium: false, allowProposals: false })}
                   >
-                    <Text style={[styles.chipText, !campaignData.isPremium && styles.activeChipText]}>Standard (Fixed Reward)</Text>
+                    <ThemedText style={[styles.chipText, !campaignData.isPremium && styles.activeChipText]}>Standard (Fixed Reward)</ThemedText>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.chip, campaignData.isPremium && styles.activeChip]}
                     onPress={() => setCampaignData({ ...campaignData, isPremium: true, allowProposals: true })}
                   >
-                    <Text style={[styles.chipText, campaignData.isPremium && styles.activeChipText]}>Premium (Reverse Proposal)</Text>
+                    <ThemedText style={[styles.chipText, campaignData.isPremium && styles.activeChipText]}>Premium (Reverse Proposal)</ThemedText>
                   </TouchableOpacity>
                 </View>
                 {campaignData.isPremium && (
-                  <Text style={styles.infoText}>
+                  <ThemedText style={styles.infoText}>
                     * Only influencers with 10k+ followers can see and bid on this campaign.
-                  </Text>
+                  </ThemedText>
                 )}
               </View>
             </View>
@@ -248,7 +318,7 @@ export function CampaignBuilder() {
       case 1:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.label}>Target Platform</Text>
+            <ThemedText style={styles.label}>Target Platform</ThemedText>
             <View style={styles.row}>
               {['TIKTOK', 'INSTAGRAM', 'YOUTUBE'].map((p) => (
                 <TouchableOpacity
@@ -256,12 +326,12 @@ export function CampaignBuilder() {
                   style={[styles.chip, campaignData.targetPlatform === p && styles.activeChip]}
                   onPress={() => setCampaignData({ ...campaignData, targetPlatform: p })}
                 >
-                  <Text style={[styles.chipText, campaignData.targetPlatform === p && styles.activeChipText]}>{p}</Text>
+                  <ThemedText style={[styles.chipText, campaignData.targetPlatform === p && styles.activeChipText]}>{p}</ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.label}>Target Gender</Text>
+            <ThemedText style={styles.label}>Target Gender</ThemedText>
             <View style={styles.row}>
               {['all', 'male', 'female'].map((g) => (
                 <TouchableOpacity
@@ -272,16 +342,16 @@ export function CampaignBuilder() {
                     targetFilters: { ...campaignData.targetFilters, gender: g as any } 
                   })}
                 >
-                  <Text style={[styles.chipText, campaignData.targetFilters.gender === g && styles.activeChipText]}>
+                  <ThemedText style={[styles.chipText, campaignData.targetFilters.gender === g && styles.activeChipText]}>
                     {g.toUpperCase()}
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
 
             <View style={styles.rowInputs}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Min Age</Text>
+                <ThemedText style={styles.label}>Min Age</ThemedText>
                 <TextInput
                   style={styles.input}
                   keyboardType="numeric"
@@ -293,7 +363,7 @@ export function CampaignBuilder() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Max Age</Text>
+                <ThemedText style={styles.label}>Max Age</ThemedText>
                 <TextInput
                   style={styles.input}
                   keyboardType="numeric"
@@ -308,7 +378,7 @@ export function CampaignBuilder() {
 
             <View style={styles.row}>
               <View style={[styles.column, { flex: 0.5 }]}>
-                <Text style={styles.label}>Global Campaign</Text>
+                <ThemedText style={styles.label}>Global Campaign</ThemedText>
                 <TouchableOpacity 
                   style={[styles.toggleButton, campaignData.targetFilters.isGlobal && styles.toggleButtonActive]}
                   onPress={() => setCampaignData({
@@ -316,13 +386,13 @@ export function CampaignBuilder() {
                     targetFilters: { ...campaignData.targetFilters, isGlobal: !campaignData.targetFilters.isGlobal }
                   })}
                 >
-                  <Text style={[styles.toggleButtonText, campaignData.targetFilters.isGlobal && styles.toggleButtonTextActive]}>
+                  <ThemedText style={[styles.toggleButtonText, campaignData.targetFilters.isGlobal && styles.toggleButtonTextActive]}>
                     {campaignData.targetFilters.isGlobal ? 'YES (Worldwide)' : 'NO (Target Area)'}
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               </View>
               <View style={styles.column}>
-                <Text style={styles.label}>Target Region Name</Text>
+                <ThemedText style={styles.label}>Target Region Name</ThemedText>
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. Seoul, Gangnam"
@@ -330,101 +400,14 @@ export function CampaignBuilder() {
                   onChangeText={(text) => setCampaignData({ 
                     ...campaignData, 
                     targetFilters: { ...campaignData.targetFilters, locationName: text } 
-                    // 실제 구현에서는 여기서 Geocoding을 호출합니다.
                   })}
                 />
               </View>
             </View>
 
-            {!campaignData.targetFilters.isGlobal && (
-              <View style={styles.mapPreview}>
-                <View style={styles.mapOverlay}>
-                  <Text style={styles.mapText}>📍 {campaignData.targetFilters.locationName || 'Select a location'}</Text>
-                  {campaignData.targetFilters.lat && campaignData.targetFilters.lon && (
-                    <Text style={styles.mapCoords}>
-                      {Number(campaignData.targetFilters.lat).toFixed(4)}, {Number(campaignData.targetFilters.lon).toFixed(4)}
-                    </Text>
-                  )}
-                </View>
-                <View style={styles.mapPlaceholder}>
-                  {/* 실제 지도 연동 전 단계: 시각적 피드백 강화 */}
-                  <View style={{ flex: 1, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 14 }}>Interactive Map Preview (Real-time Sync)</Text>
-                    <TouchableOpacity 
-                      style={styles.searchMapButton}
-                      onPress={() => {
-                        // Geocoding 시뮬레이션
-                        setCampaignData({
-                          ...campaignData,
-                          targetFilters: { 
-                            ...campaignData.targetFilters, 
-                            lat: 37.5665 + (Math.random() - 0.5) * 0.1,
-                            lon: 126.9780 + (Math.random() - 0.5) * 0.1
-                          }
-                        });
-                      }}
-                    >
-                      <Text style={styles.searchMapButtonText}>Search & Update Precise Coordinates</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {!campaignData.targetFilters.isGlobal && (
-              <View style={styles.row}>
-                <View style={styles.column}>
-                  <Text style={styles.label}>Latitude</Text>
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={campaignData.targetFilters.lat?.toString()}
-                    onChangeText={(text) => setCampaignData({ 
-                      ...campaignData, 
-                      targetFilters: { ...campaignData.targetFilters, lat: parseFloat(text) || 0 } 
-                    })}
-                  />
-                </View>
-                <View style={styles.column}>
-                  <Text style={styles.label}>Longitude</Text>
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={campaignData.targetFilters.lon?.toString()}
-                    onChangeText={(text) => setCampaignData({ 
-                      ...campaignData, 
-                      targetFilters: { ...campaignData.targetFilters, lon: parseFloat(text) || 0 } 
-                    })}
-                  />
-                </View>
-              </View>
-            )}
-
-            <Text style={styles.label}>Must-include Keywords (Comma separated)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Innovation, Eco-friendly, 20% Off"
-              value={campaignData.mustIncludeKeywords.join(', ')}
-              onChangeText={(text) => setCampaignData({ 
-                ...campaignData, 
-                mustIncludeKeywords: text.split(',').map(s => s.trim()).filter(s => s) 
-              })}
-            />
-
-            <Text style={styles.label}>Negative Keywords (Exclude - Comma separated)</Text>
-            <TextInput
-              style={[styles.input, { borderColor: '#fecaca' }]}
-              placeholder="e.g. Cheap, Bad quality, Avoid"
-              value={campaignData.mustExcludeKeywords.join(', ')}
-              onChangeText={(text) => setCampaignData({ 
-                ...campaignData, 
-                mustExcludeKeywords: text.split(',').map(s => s.trim()).filter(s => s) 
-              })}
-            />
-
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Total Budget</Text>
+                <ThemedText style={styles.label}>{t('campaign.builder.budgetLabel')}</ThemedText>
                 <TextInput
                   style={styles.input}
                   keyboardType="numeric"
@@ -433,7 +416,7 @@ export function CampaignBuilder() {
                 />
               </View>
               <View style={{ flex: 0.4 }}>
-                <Text style={styles.label}>Currency</Text>
+                <ThemedText style={styles.label}>Currency</ThemedText>
                 <View style={styles.currencySelector}>
                   {['KRW', 'USD', 'THB'].map((c) => (
                     <TouchableOpacity
@@ -441,9 +424,9 @@ export function CampaignBuilder() {
                       style={[styles.currencyChip, campaignData.currencyCode === c && styles.currencyChipActive]}
                       onPress={() => setCampaignData({ ...campaignData, currencyCode: c })}
                     >
-                      <Text style={[styles.currencyChipText, campaignData.currencyCode === c && styles.currencyChipTextActive]}>
+                      <ThemedText style={[styles.currencyChipText, campaignData.currencyCode === c && styles.currencyChipTextActive]}>
                         {c}
-                      </Text>
+                      </ThemedText>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -469,30 +452,30 @@ export function CampaignBuilder() {
       case 3:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.title}>Final Step: Escrow Deposit</Text>
-            <Text style={styles.description}>
-              Review your campaign details. Your budget will be held in escrow and distributed to influencers upon successful mission completion.
-            </Text>
+            <ThemedText style={styles.title}>{t('campaign.builder.step3.title')}</ThemedText>
+            <ThemedText style={styles.description}>{t('campaign.builder.step3.desc')}</ThemedText>
+            
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Base Budget (Influencers)</Text>
-                <Text style={styles.summaryValue}>
+                <ThemedText style={styles.summaryLabel}>{t('campaign.builder.summary.base')}</ThemedText>
+                <ThemedText style={styles.summaryValue}>
                   {(campaignData.totalBudget * 0.8).toLocaleString()} {campaignData.currencyCode}
-                </Text>
+                </ThemedText>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Platform Fee (20%)</Text>
-                <Text style={styles.summaryValue}>
+                <ThemedText style={styles.summaryLabel}>{t('campaign.builder.summary.fee')}</ThemedText>
+                <ThemedText style={styles.summaryValue}>
                   {(campaignData.totalBudget * 0.2).toLocaleString()} {campaignData.currencyCode}
-                </Text>
+                </ThemedText>
               </View>
               <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: '#e2e8f0', marginTop: 12, paddingTop: 12 }]}>
-                <Text style={[styles.summaryLabel, { color: '#0f172a', fontWeight: '800' }]}>Total Payment</Text>
-                <Text style={[styles.summaryValue, { color: '#6366f1', fontSize: 20, fontWeight: '800' }]}>
+                <ThemedText style={[styles.summaryLabel, { color: '#0f172a', fontWeight: '800' }]}>{t('campaign.builder.summary.total')}</ThemedText>
+                <ThemedText style={[styles.summaryValue, { color: '#6366f1', fontSize: 20, fontWeight: '800' }]}>
                   {campaignData.totalBudget.toLocaleString()} {campaignData.currencyCode}
-                </Text>
+                </ThemedText>
               </View>
             </View>
+
             <TouchableOpacity 
               style={[styles.paymentButton, paymentLoading && { opacity: 0.7 }]} 
               onPress={handlePayment}
@@ -501,10 +484,10 @@ export function CampaignBuilder() {
               {paymentLoading ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.paymentButtonText}>Deposit to Escrow via PayPal</Text>
+                <ThemedText style={styles.paymentButtonText}>{t('campaign.builder.payButton')}</ThemedText>
               )}
             </TouchableOpacity>
-            <Text style={styles.secureText}>🔒 Secure SSL Encrypted Payment</Text>
+            <ThemedText style={styles.secureText}>🔒 {t('campaign.builder.securePayment')}</ThemedText>
           </View>
         );
       default:
@@ -515,14 +498,14 @@ export function CampaignBuilder() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.mainTitle}>Create New Campaign</Text>
+        <ThemedText style={styles.mainTitle}>{t('campaign.builder.title')}</ThemedText>
         <View style={styles.stepper}>
-          {STEPS.map((step, i) => (
-            <View key={step} style={styles.stepItem}>
+          {STEPS_KEYS.map((key, i) => (
+            <View key={key} style={styles.stepItem}>
               <View style={[styles.stepCircle, currentStep >= i && styles.activeStepCircle]}>
-                <Text style={[styles.stepNumber, currentStep >= i && styles.activeStepNumber]}>{i + 1}</Text>
+                <ThemedText style={[styles.stepNumber, currentStep >= i && styles.activeStepNumber]}>{i + 1}</ThemedText>
               </View>
-              <Text style={[styles.stepLabel, currentStep >= i && styles.activeStepLabel]}>{step}</Text>
+              <ThemedText style={[styles.stepLabel, currentStep >= i && styles.activeStepLabel]}>{t(key)}</ThemedText>
             </View>
           ))}
         </View>
@@ -546,12 +529,12 @@ export function CampaignBuilder() {
             onPress={() => currentStep > 0 && setCurrentStep(currentStep - 1)}
             disabled={currentStep === 0}
           >
-            <Text style={styles.backButtonText}>Back</Text>
+            <ThemedText style={styles.backButtonText}>{t('campaign.builder.prev')}</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-            <Text style={styles.nextButtonText}>
-              {currentStep === 1 ? 'Generate AI Scripts' : 'Next Step'}
-            </Text>
+            <ThemedText style={styles.nextButtonText}>
+              {currentStep === 1 ? t('campaign.builder.next') : t('campaign.builder.next')}
+            </ThemedText>
           </TouchableOpacity>
         </View>
       )}
@@ -613,6 +596,79 @@ const styles = StyleSheet.create({
   },
   activeStepLabel: {
     color: '#6366f1',
+  },
+  pickerContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 8,
+  },
+  previewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 16,
+    width: '100%',
+  },
+  previewItem: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#eee',
+  },
+  previewThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  removeBtn: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  keywordInputContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  tagCloud: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eef2ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#c7d2fe',
+  },
+  tagText: {
+    color: '#6366f1',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  removeTagText: {
+    marginLeft: 6,
+    color: '#6366f1',
+    fontSize: 18,
+    lineHeight: 18,
   },
   scrollContent: {
     padding: 24,

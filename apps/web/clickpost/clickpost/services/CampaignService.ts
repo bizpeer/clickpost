@@ -3,6 +3,9 @@ import { supabase } from './SupabaseClient';
 export interface CampaignData {
   title: string;
   description: string;
+  purpose?: 'AWARENESS' | 'CONVERSION' | 'POLITICAL';
+  startDate?: string;
+  endDate?: string;
   totalBudget: number;
   currencyCode: string;
   targetFilters: {
@@ -33,6 +36,9 @@ export class CampaignService {
         advertiser_id: advertiserId,
         title: data.title,
         description: data.description,
+        purpose: data.purpose,
+        start_date: data.startDate,
+        end_date: data.endDate,
         total_budget: data.totalBudget,
         currency_code: data.currencyCode,
         target_filters: data.targetFilters,

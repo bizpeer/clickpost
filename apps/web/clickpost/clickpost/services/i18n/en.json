@@ -32,20 +32,57 @@
       "EXHAUSTED": "Exhausted",
       "CLOSED": "Closed"
     },
-    "details": {
-      "backToDashboard": "← Back to Dashboard",
-      "manageCampaign": "Manage Campaign",
-      "spentTotal": "Spent / Total Budget",
-      "verifiedMissions": "Verified Missions",
-      "exhaustionRate": "Budget Exhaustion Rate",
-      "missionParticipants": "Mission Participants",
-      "noParticipants": "No participants yet.",
-      "totalBudget": "Total Budget",
-      "participated": "Participated",
-      "budgetExhaustion": "Budget Exhaustion Status"
+      "budgetExhaustion": "Budget Exhaustion Status",
+      "sectionInfo": "Campaign Overview",
+      "sectionStrategy": "Strategy & Materials",
+      "sectionMessages": "AI Message Management",
+      "infoTitle": "Basic Campaign Information",
+      "materialsTitle": "Uploaded Materials",
+      "keywordsTitle": "Target Keywords",
+      "scriptsTitle": "Approved AI Scripts",
+      "noScripts": "No scripts approved yet.",
+      "approveAction": "Approve",
+      "viewMaterial": "View Material",
+      "restrictedKeywords": "Negative Keywords",
+      "platformGoal": "Target Platform",
+      "missionReward": "Reward per Mission"
     },
     "type": {
       "aiAvatar": "AI Avatar"
+    },
+    "builder": {
+      "title": "Create New Campaign",
+      "step": "Step {{current}} / {{total}}",
+      "basicInfo": "Basic Info",
+      "targeting": "Targeting & Keywords",
+      "aiSandbox": "AI Script Sandbox",
+      "payment": "Payment & Activation",
+      "nameLabel": "Campaign Name",
+      "purposeLabel": "Campaign Purpose",
+      "purposePlaceholder": "Select a purpose",
+      "awareness": "Brand Awareness",
+      "conversion": "Sales & Conversion",
+      "political": "Political & Public Relations",
+      "periodLabel": "Campaign Period",
+      "materialLabel": "Campaign Materials (Images/Videos/Docs)",
+      "dropzoneHint": "Drag & drop files or click to upload (Max 500MB)",
+      "keywordsLabel": "Core Keywords",
+      "keywordsPlaceholder": "Press enter to add keyword",
+      "budgetLabel": "Total Budget",
+      "next": "Next Step",
+      "prev": "Back",
+      "finish": "Complete Payment"
     }
+  },
+  "auth": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "email": "Email Address",
+    "password": "Password",
+    "forgotPassword": "Forgot your password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "googleLogin": "Login with Google",
+    "logout": "Logout"
   }
 }

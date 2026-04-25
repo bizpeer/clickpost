@@ -32,20 +32,57 @@
       "EXHAUSTED": "소진완료",
       "CLOSED": "종료"
     },
-    "details": {
-      "backToDashboard": "← 대시보드로 돌아가기",
-      "manageCampaign": "캠페인 관리",
-      "spentTotal": "집행 금액 / 총 예산",
-      "verifiedMissions": "검증된 미션",
-      "exhaustionRate": "예산 소진율",
-      "missionParticipants": "미션 참여자",
-      "noParticipants": "아직 참여자가 없습니다.",
-      "totalBudget": "총 예산",
-      "participated": "참여 완료",
-      "budgetExhaustion": "예산 소진 현황"
+      "budgetExhaustion": "예산 소진 현황",
+      "sectionInfo": "캠페인 개요",
+      "sectionStrategy": "전략 및 자료",
+      "sectionMessages": "AI 메시지 관리",
+      "infoTitle": "캠페인 기본 정보",
+      "materialsTitle": "업로드된 자료",
+      "keywordsTitle": "타겟 키워드",
+      "scriptsTitle": "승인된 AI 스크립트",
+      "noScripts": "승인된 스크립트가 없습니다.",
+      "approveAction": "승인하기",
+      "viewMaterial": "자료 보기",
+      "restrictedKeywords": "제외 키워드",
+      "platformGoal": "목표 플랫폼",
+      "missionReward": "건당 보상"
     },
     "type": {
       "aiAvatar": "AI 아바타"
+    },
+    "builder": {
+      "title": "새 캠페인 만들기",
+      "step": "단계 {{current}} / {{total}}",
+      "basicInfo": "기본 정보",
+      "targeting": "타겟팅 및 키워드",
+      "aiSandbox": "AI 스크립트 샌드박스",
+      "payment": "결제 및 활성화",
+      "nameLabel": "캠페인 명",
+      "purposeLabel": "캠페인 목적",
+      "purposePlaceholder": "목적을 선택하세요",
+      "awareness": "브랜드 인지도 향상",
+      "conversion": "판매 전환 및 매출 증대",
+      "political": "정치 및 공공 홍보",
+      "periodLabel": "캠페인 기간",
+      "materialLabel": "캠페인 자료 (이미지/영상/문서)",
+      "dropzoneHint": "파일을 드래그하거나 클릭하여 업로드하세요 (최대 500MB)",
+      "keywordsLabel": "핵심 키워드",
+      "keywordsPlaceholder": "엔터를 입력하여 키워드 추가",
+      "budgetLabel": "총 예산",
+      "next": "다음 단계",
+      "prev": "이전",
+      "finish": "결제하기"
     }
+  },
+  "auth": {
+    "login": "로그인",
+    "signup": "회원가입",
+    "email": "이메일 주소",
+    "password": "비밀번호",
+    "forgotPassword": "비밀번호를 잊으셨나요?",
+    "noAccount": "계정이 없으신가요?",
+    "hasAccount": "이미 계정이 있으신가요?",
+    "googleLogin": "Google로 로그인",
+    "logout": "로그아웃"
   }
 }
