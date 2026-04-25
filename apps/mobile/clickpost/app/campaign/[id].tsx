@@ -53,6 +53,9 @@ export default function CampaignDetailScreen() {
   const [proposalMessage, setProposalMessage] = useState('');
   const [isPro, setIsPro] = useState(false);
   const [proposal, setProposal] = useState<any | null>(null);
+  const [currentContentId, setCurrentContentId] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string>('');
   
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
@@ -94,6 +97,30 @@ export default function CampaignDetailScreen() {
     }
   }, [generating]);
 
+  // 타이머 로직
+  useEffect(() => {
+    if (!expiresAt || videoUrl === null && !generating) return;
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = new Date(expiresAt).getTime() - now;
+
+      if (distance < 0) {
+        clearInterval(timer);
+        setTimeLeft('EXPIRED');
+        Alert.alert(t('common.error'), '미션 시간이 만료되었습니다.', [
+          { text: t('common.ok'), onPress: () => router.replace('/(tabs)') }
+        ]);
+      } else {
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        setTimeLeft(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [expiresAt, videoUrl, generating]);
+
   const handleGenerateVideo = async () => {
     const user = storageService.getUserInfo();
     if (!campaign || !user?.id) {
@@ -116,15 +143,17 @@ export default function CampaignDetailScreen() {
     setGenerating(true);
     try {
       // 1. 참여 신청 및 영상 생성 트리거
-      const contentId = await CampaignService.participateInMission(user.id, campaign.id);
+      const result = await CampaignService.participateInMission(user.id, campaign.id);
       
-      if (!contentId) {
+      if (!result) {
         throw new Error("Failed to participate in mission");
       }
-      setCurrentContentId(contentId);
+      
+      setCurrentContentId(result.contentId);
+      setExpiresAt(result.expiresAt);
 
       // 2. 실시간 상태 구독
-      const subscription = CampaignService.subscribeToMissionStatus(contentId, (newContent) => {
+      const subscription = CampaignService.subscribeToMissionStatus(result.contentId, (newContent) => {
         if (newContent.status === 'READY') {
           setVideoUrl(newContent.ai_video_url);
           setGenerating(false);
@@ -142,6 +171,32 @@ export default function CampaignDetailScreen() {
       Alert.alert(t('common.error'), t('campaign.generate_failed'));
       setGenerating(false);
     }
+  };
+
+  const handleCancelMission = async () => {
+    if (!currentContentId) return;
+
+    Alert.alert(
+      '미션 포기',
+      '정말로 미션을 포기하시겠습니까? 다른 인플루언서가 참여할 수 있도록 기회가 넘어갑니다.',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { 
+          text: '포기하기', 
+          style: 'destructive',
+          onPress: async () => {
+            setSubmitting(true);
+            const success = await CampaignService.cancelMission(currentContentId);
+            setSubmitting(false);
+            if (success) {
+              router.replace('/(tabs)');
+            } else {
+              Alert.alert(t('common.error'), '미션 취소에 실패했습니다.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleSubmitSNS = async () => {
@@ -424,6 +479,12 @@ export default function CampaignDetailScreen() {
             
             {videoUrl ? (
               <Animated.View entering={FadeIn.springify()}>
+                <View style={styles.timerRow}>
+                  <IconSymbol name="timer" size={16} color={theme.primary} />
+                  <Typography variant="caption" color={theme.primary} bold style={{ marginLeft: 6 }}>
+                    남은 시간: {timeLeft}
+                  </Typography>
+                </View>
                 <Card style={styles.videoSuccess}>
                   <View style={styles.videoPreviewPlaceholder}>
                     <IconSymbol name="play.fill" size={30} color={theme.primary} />
@@ -439,6 +500,12 @@ export default function CampaignDetailScreen() {
                     variant="primary"
                   />
                 </Card>
+                <TouchableOpacity 
+                  onPress={handleCancelMission}
+                  style={styles.cancelLink}
+                >
+                  <Typography variant="caption" color="rgba(255,255,255,0.4)">미션 참여 포기하기</Typography>
+                </TouchableOpacity>
               </Animated.View>
             ) : (
               <Button 
@@ -821,7 +888,18 @@ const styles = StyleSheet.create({
   },
   modalButtons: {
     flexDirection: 'row',
-    marginTop: 32,
+    marginTop: 24,
+  },
+  timerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 8,
+  },
+  cancelLink: {
+    alignItems: 'center',
+    marginTop: 12,
+    paddingVertical: 8,
   },
   proposalStatusBox: {
     marginTop: 12,

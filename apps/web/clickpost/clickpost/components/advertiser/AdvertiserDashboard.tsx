@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
+
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
 import { CampaignService } from '../../services/CampaignService';
 import { Link } from 'expo-router';
@@ -9,7 +11,9 @@ const { width } = Dimensions.get('window');
 const isDesktop = width > 768;
 
 export function AdvertiserDashboard() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
+
   const [refreshing, setRefreshing] = useState(false);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
@@ -70,54 +74,64 @@ export function AdvertiserDashboard() {
     >
       <Animated.View entering={FadeInUp.duration(600)} style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Good morning, <Text style={styles.brandText}>ClickPost</Text> Partner!</Text>
-          <Text style={styles.subGreeting}>Manage your AI-powered influence campaigns with ease.</Text>
+          <Text style={styles.greeting}>
+            <Trans 
+              i18nKey="dashboard.greeting" 
+              values={{ name: 'ClickPost' }}
+              components={[<Text style={styles.brandText} />]}
+            />
+          </Text>
+          <Text style={styles.subGreeting}>{t('dashboard.subGreeting')}</Text>
         </View>
         <Link href="/campaign/new" asChild>
           <TouchableOpacity style={styles.newButton}>
-            <Text style={styles.newButtonText}>+ Create Campaign</Text>
+            <Text style={styles.newButtonText}>{t('dashboard.createCampaign')}</Text>
           </TouchableOpacity>
         </Link>
       </Animated.View>
 
+
       <View style={styles.bentoGrid}>
         <Animated.View entering={FadeInRight.delay(100).duration(600)} style={[styles.bentoCard, styles.mainStat]}>
-          <Text style={styles.statLabel}>Total Budget Commitment</Text>
+          <Text style={styles.statLabel}>{t('dashboard.totalBudgetCommitment')}</Text>
           <Text style={styles.statValue}>{totalSpent.toLocaleString()} <Text style={styles.currency}>{campaigns[0]?.currency_code || 'KRW'}</Text></Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: campaigns.length > 0 ? '75%' : '0%' }]} />
           </View>
-          <Text style={styles.statSubText}>Total {campaigns.length} campaigns active/draft</Text>
+          <Text style={styles.statSubText}>{t('dashboard.totalCampaigns', { count: campaigns.length })}</Text>
         </Animated.View>
 
         <View style={styles.bentoColumn}>
           <Animated.View entering={FadeInRight.delay(200).duration(600)} style={[styles.bentoCard, styles.sideStat]}>
-            <Text style={styles.statLabel}>Active Missions</Text>
+            <Text style={styles.statLabel}>{t('dashboard.activeMissions')}</Text>
             <Text style={styles.statValueSmall}>{campaigns.filter(c => c.status === 'ACTIVE').length}</Text>
-            <Text style={styles.statSubText}>Currently scaling reach</Text>
+            <Text style={styles.statSubText}>{t('dashboard.currentlyScaling')}</Text>
           </Animated.View>
           <Animated.View entering={FadeInRight.delay(300).duration(600)} style={[styles.bentoCard, styles.sideStat, { borderLeftColor: '#10b981' }]}>
-            <Text style={styles.statLabel}>Avg. ROI</Text>
+            <Text style={styles.statLabel}>{t('dashboard.avgRoi')}</Text>
             <Text style={[styles.statValueSmall, { color: '#10b981' }]}>4.2x</Text>
-            <Text style={styles.statSubText}>Based on impressions</Text>
+            <Text style={styles.statSubText}>{t('dashboard.basedOnImpressions')}</Text>
           </Animated.View>
         </View>
       </View>
 
+
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Your Campaigns</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.yourCampaigns')}</Text>
         <TouchableOpacity style={styles.filterButton}>
-          <Text style={styles.filterText}>Filter by Status</Text>
+          <Text style={styles.filterText}>{t('dashboard.filterByStatus')}</Text>
         </TouchableOpacity>
       </View>
+
       
       {campaigns.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No campaigns found. Start your first marketing drive!</Text>
+          <Text style={styles.emptyText}>{t('dashboard.noCampaigns')}</Text>
           <TouchableOpacity style={styles.emptyButton}>
-            <Text style={styles.emptyButtonText}>Create Now</Text>
+            <Text style={styles.emptyButtonText}>{t('dashboard.createNow')}</Text>
           </TouchableOpacity>
         </View>
+
       ) : (
         <View style={isDesktop ? styles.campaignGrid : styles.campaignList}>
           {campaigns.map((item, index) => (
@@ -135,21 +149,23 @@ export function AdvertiserDashboard() {
                     <Text style={styles.campaignTitle}>{item.title}</Text>
                     <View style={styles.tagRow}>
                       <Text style={styles.platformBadge}>{item.target_platform}</Text>
-                      <Text style={styles.typeBadge}>AI Avatar</Text>
+                      <Text style={styles.typeBadge}>{t('campaign.type.aiAvatar')}</Text>
                     </View>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
                     <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-                    <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+                    <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{t(`campaign.status.${item.status}`)}</Text>
                   </View>
+
                 </View>
                 
                 <Text style={styles.campaignDescription} numberOfLines={2}>{item.description}</Text>
                 
                 <View style={styles.budgetProgressContainer}>
                   <View style={styles.budgetProgressHeader}>
-                    <Text style={styles.progressLabel}>Budget Exhaustion</Text>
+                    <Text style={styles.progressLabel}>{t('campaign.details.budgetExhaustion')}</Text>
                     <Text style={styles.progressPercent}>
+
                       {Math.min(Math.round(((item.mission_count * (item.video_reward || 5000)) / item.total_budget) * 100), 100)}%
                     </Text>
                   </View>
@@ -165,17 +181,18 @@ export function AdvertiserDashboard() {
 
                 <View style={styles.cardFooter}>
                   <View style={styles.footerItem}>
-                    <Text style={styles.footerLabel}>Total Budget</Text>
+                    <Text style={styles.footerLabel}>{t('campaign.details.totalBudget')}</Text>
                     <Text style={styles.footerValue}>{item.total_budget?.toLocaleString()} {item.currency_code}</Text>
                   </View>
                   <View style={styles.footerItem}>
-                    <Text style={styles.footerLabel}>Participated</Text>
-                    <Text style={styles.footerValue}>{item.mission_count || 0} missions</Text>
+                    <Text style={styles.footerLabel}>{t('campaign.details.participated')}</Text>
+                    <Text style={styles.footerValue}>{item.mission_count || 0}</Text>
                   </View>
                   <View style={styles.footerAction}>
-                    <Text style={styles.viewDetails}>Manage →</Text>
+                    <Text style={styles.viewDetails}>{t('dashboard.manageAction')}</Text>
                   </View>
                 </View>
+
               </TouchableOpacity>
             </Animated.View>
           ))}

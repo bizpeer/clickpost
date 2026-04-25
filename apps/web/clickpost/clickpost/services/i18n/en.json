@@ -1,0 +1,51 @@
+{
+  "common": {
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "manage": "Manage",
+    "loading": "Loading...",
+    "confirm": "Confirm"
+  },
+  "dashboard": {
+    "greeting": "Good morning, <0>{{name}}</0>!",
+    "subGreeting": "Easily manage your AI-driven influencer campaigns.",
+    "createCampaign": "Create Campaign",
+    "totalBudgetCommitment": "Total Budget commitment",
+    "activeMissions": "Active Missions",
+    "avgRoi": "Avg ROI",
+    "currentlyScaling": "Currently scaling impact",
+    "basedOnImpressions": "Based on impressions",
+    "totalCampaigns": "{{count}} campaigns total (Active/Draft)",
+    "yourCampaigns": "Your Campaigns",
+    "filterByStatus": "Filter by status",
+    "noCampaigns": "No campaigns found. Start your first marketing journey!",
+    "createNow": "Create Now",
+    "manageAction": "Manage →"
+  },
+  "campaign": {
+    "status": {
+      "ACTIVE": "Active",
+      "DRAFT": "Draft",
+      "EXHAUSTED": "Exhausted",
+      "CLOSED": "Closed"
+    },
+    "details": {
+      "backToDashboard": "← Back to Dashboard",
+      "manageCampaign": "Manage Campaign",
+      "spentTotal": "Spent / Total Budget",
+      "verifiedMissions": "Verified Missions",
+      "exhaustionRate": "Budget Exhaustion Rate",
+      "missionParticipants": "Mission Participants",
+      "noParticipants": "No participants yet.",
+      "totalBudget": "Total Budget",
+      "participated": "Participated",
+      "budgetExhaustion": "Budget Exhaustion Status"
+    },
+    "type": {
+      "aiAvatar": "AI Avatar"
+    }
+  }
+}

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+
 import { CampaignService } from '../../services/CampaignService';
 
 interface CampaignDetailProps {
@@ -8,7 +10,9 @@ interface CampaignDetailProps {
 }
 
 export function CampaignDetail({ campaignId, onBack }: CampaignDetailProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
+
   const [campaign, setCampaign] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [missions, setMissions] = useState<any[]>([]);
@@ -60,49 +64,53 @@ export function CampaignDetail({ campaignId, onBack }: CampaignDetailProps) {
   return (
     <ScrollView style={styles.container}>
       <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>← Back to Dashboard</Text>
+        <Text style={styles.backText}>{t('campaign.details.backToDashboard')}</Text>
       </TouchableOpacity>
+
 
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>{campaign.title}</Text>
           <View style={styles.badgeRow}>
             <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>{campaign.status}</Text>
+              <Text style={styles.statusText}>{t(`campaign.status.${campaign.status}`)}</Text>
             </View>
             <Text style={styles.platformText}>{campaign.target_platform}</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.editButton}>
-          <Text style={styles.editButtonText}>Manage Campaign</Text>
+          <Text style={styles.editButtonText}>{t('campaign.details.manageCampaign')}</Text>
         </TouchableOpacity>
+
       </View>
 
       <View style={styles.statsGrid}>
         <View style={styles.statBox}>
-          <Text style={styles.statLabel}>Spent / Total</Text>
+          <Text style={styles.statLabel}>{t('campaign.details.spentTotal')}</Text>
           <Text style={styles.statValue}>
             {stats?.spent_budget?.toLocaleString()} / {campaign.total_budget?.toLocaleString()}
           </Text>
           <Text style={styles.statSubText}>{campaign.currency_code}</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={styles.statLabel}>Verified Missions</Text>
+          <Text style={styles.statLabel}>{t('campaign.details.verifiedMissions')}</Text>
           <Text style={styles.statValue}>{stats?.verified_count} / {stats?.mission_count}</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={styles.statLabel}>Exhaustion Rate</Text>
+          <Text style={styles.statLabel}>{t('campaign.details.exhaustionRate')}</Text>
           <Text style={[styles.statValue, { color: stats?.exhaustion_rate > 90 ? '#ef4444' : '#6366f1' }]}>
             {stats?.exhaustion_rate?.toFixed(1)}%
           </Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>Mission Participants</Text>
+
+      <Text style={styles.sectionTitle}>{t('campaign.details.missionParticipants')}</Text>
       <View style={styles.listContainer}>
         {missions.length === 0 ? (
-          <Text style={styles.emptyText}>No participants yet.</Text>
+          <Text style={styles.emptyText}>{t('campaign.details.noParticipants')}</Text>
         ) : (
+
           missions.map((m) => (
             <View key={m.content_id} style={styles.participantCard}>
               <View style={styles.participantInfo}>

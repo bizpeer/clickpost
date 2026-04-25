@@ -59,7 +59,7 @@ export class CampaignService {
   /**
    * 미션 참여 신청 (JIT 영상 생성 시작)
    */
-  public static async participateInMission(userId: string, campaignId: string): Promise<string | null> {
+  public static async participateInMission(userId: string, campaignId: string): Promise<{ contentId: string; expiresAt: string } | null> {
     try {
       // 1. 해당 캠페인의 아직 할당되지 않은 변주 하나를 선택
       const { data: variation, error: varError } = await supabase
@@ -100,10 +100,51 @@ export class CampaignService {
         body: { content_id: content.content_id }
       }).catch(err => console.error('Failed to trigger video generation:', err));
 
-      return content.content_id;
+      return {
+        contentId: content.content_id,
+        expiresAt: content.expires_at
+      };
     } catch (error) {
       console.error('Participation error:', error);
       return null;
+    }
+  }
+
+  /**
+   * 미션 참여 취소 (선점 취소)
+   */
+  public static async cancelMission(contentId: string): Promise<boolean> {
+    try {
+      // 1. 미션 정보 가져오기 (variation_id 필요)
+      const { data: mission, error: missionError } = await supabase
+        .from('mission_contents')
+        .select('variation_id, status')
+        .eq('content_id', contentId)
+        .single();
+
+      if (missionError || !mission) throw new Error('Mission not found');
+      
+      // 이미 완료된 미션은 취소 불가
+      if (mission.status === 'COMPLETED') return false;
+
+      // 2. 변주 할당 해제
+      await supabase
+        .from('script_variations')
+        .update({ is_assigned: false })
+        .eq('variation_id', mission.variation_id);
+
+      // 3. 미션 상태를 CANCELLED로 변경
+      const { error: updateError } = await supabase
+        .from('mission_contents')
+        .update({ status: 'CANCELLED' })
+        .eq('content_id', contentId);
+
+      if (updateError) throw updateError;
+
+      return true;
+    } catch (error) {
+      console.error('Cancel mission error:', error);
+      return false;
     }
   }
 

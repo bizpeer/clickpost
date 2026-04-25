@@ -88,4 +88,18 @@ export class UserService {
       console.error('Error adding points:', error);
     }
   }
+
+  /**
+   * 유저의 FCM 토큰을 업데이트합니다.
+   */
+  public static async updateFcmToken(userId: string, token: string): Promise<void> {
+    const { error } = await supabase
+      .from('users')
+      .update({ fcm_token: token })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error updating FCM token:', error);
+    }
+  }
 }

@@ -114,9 +114,10 @@ Resolution: 8k, Cinematic lighting, Studio background.
       <div className="flex flex-col gap-1">
         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
           <Fingerprint className="w-8 h-8 text-indigo-600" />
-          Seed ID Sheet
+          Seed ID Sheet (Simulator)
         </h2>
-        <p className="text-slate-500 font-medium text-sm">NanoBanana v2 엔진 기반의 결정론적 고정 페르소나 생성 로직을 시뮬레이션합니다.</p>
+        <p className="text-slate-500 font-medium text-sm">NanoBanana v2 엔진 기반의 결정론적 고정 페르소나 생성 로직을 관리하고 시뮬레이션합니다.</p>
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -313,6 +314,108 @@ Resolution: 8k, Cinematic lighting, Studio background.
           )}
         </div>
       </div>
+
+      {/* Identity Reference Sheet Section */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300 mt-12">
+        <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+          <div>
+            <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <Database className="w-5 h-5 text-indigo-600" />
+              Identity Reference Sheet (Nanobanana v2 Default)
+            </h3>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">표준 페르소나별 고정 Seed ID 일람표</p>
+          </div>
+          <div className="flex gap-2">
+            <button className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 transition-all">
+              Export CSV
+            </button>
+            <button className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 transition-all">
+              Print Sheet
+            </button>
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/30">
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category / Persona</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Region</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vibe</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Build (BMI)</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Gender</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Seed ID</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {[
+                { name: 'K-Trendsetter', age: '2000-05-15', country: 'KR', gender: 'FEMALE', h: 168, w: 50 },
+                { name: 'Global Professional', age: '1988-11-20', country: 'US', gender: 'MALE', h: 182, w: 78 },
+                { name: 'Tokyo Minimalist', age: '1995-03-10', country: 'JP', gender: 'FEMALE', h: 162, w: 46 },
+                { name: 'ASEAN Influencer', age: '2002-08-05', country: 'VN', gender: 'FEMALE', h: 165, w: 52 },
+                { name: 'Sporty Athlete', age: '1992-12-30', country: 'DE', gender: 'MALE', h: 188, w: 85 },
+              ].map((item) => {
+                const seed = generateSeed(`${item.name}|${item.age}|${item.gender}|${item.country}|${item.h}|${item.w}`);
+                return (
+                  <tr key={item.name} className="hover:bg-slate-50/50 transition-all group">
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-[10px]">
+                          {item.name[0]}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-slate-900">{item.name}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Age: {new Date().getFullYear() - new Date(item.age).getFullYear()}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-600 uppercase">
+                        {item.country}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 text-xs font-bold text-slate-500 italic">
+                      {calculateAgeVibe(item.age)}
+                    </td>
+                    <td className="px-8 py-5 text-xs font-bold text-slate-500">
+                      {item.h}cm / {item.w}kg
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className={`text-[10px] font-black uppercase tracking-widest ${item.gender === 'MALE' ? 'text-blue-500' : 'text-pink-500'}`}>
+                        {item.gender}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(seed);
+                          alert(`Seed ID #${seed} copied!`);
+                        }}
+                        className="font-mono font-black text-sm text-indigo-600 hover:underline flex items-center gap-2 justify-end"
+                      >
+                        #{seed}
+                        <RefreshCw className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-all" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="p-6 bg-indigo-600 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-indigo-200" />
+            <p className="text-white text-xs font-bold">
+              모든 Seed ID는 Nanobanana v2 알고리즘에 의해 100% 결정론적으로 생성되며, 영구적으로 고정됩니다.
+            </p>
+          </div>
+          <div className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em]">
+            Verified by Gemini-3-Flash
+          </div>
+        </div>
+      </div>
     </div>
+
   );
 }
