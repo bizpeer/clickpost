@@ -33,6 +33,19 @@ export default function LandingPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+    if (isWeb && typeof window !== 'undefined' && window.location.hash) {
+      const hash = window.location.hash;
+      // otp_expired usually means the link was already consumed (e.g. by an email scanner), meaning it's confirmed.
+      if (hash.includes('error_code=otp_expired') || hash.includes('type=signup') || hash.includes('type=recovery')) {
+        setSuccessMsg('Email confirmed! 이메일 인증이 완료되었습니다. 로그인해주세요.');
+        setShowLogin(true);
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }, []);
 
   // Background Animation
   const blob1Pos = useSharedValue(0);
@@ -248,6 +261,12 @@ export default function LandingPage() {
               {errorMsg ? (
                 <ThemedText style={{ color: '#ef4444', fontSize: 13, marginBottom: 16, textAlign: 'center' }}>
                   {errorMsg}
+                </ThemedText>
+              ) : null}
+
+              {successMsg ? (
+                <ThemedText style={{ color: '#10b981', fontSize: 13, marginBottom: 16, textAlign: 'center', fontWeight: 'bold' }}>
+                  {successMsg}
                 </ThemedText>
               ) : null}
 
