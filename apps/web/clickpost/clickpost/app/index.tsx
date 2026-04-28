@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { supabase } from '../../services/SupabaseClient';
+import { supabase } from '../services/SupabaseClient';
 import { BlurView } from 'expo-blur';
 import Animated, { 
   FadeInUp, 

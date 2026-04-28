@@ -23,12 +23,13 @@ export default function RootLayout() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const inAuthGroup = segments[0] === '(auth)';
+      const isRoot = segments.length === 0 || segments[0] === '';
       
-      if (!session && !inAuthGroup) {
+      if (!session && !inAuthGroup && !isRoot) {
         // 비로그인 사용자가 보호된 페이지 접근 시 랜딩페이지로 이동
-        router.replace('/(auth)/login');
-      } else if (session && inAuthGroup) {
-        // 로그인 사용자가 로그인/회원가입 접근 시 대시보드로 이동
+        router.replace('/');
+      } else if (session && (inAuthGroup || isRoot)) {
+        // 로그인 사용자가 로그인/회원가입/랜딩페이지 접근 시 대시보드로 이동
         router.replace('/(tabs)');
       }
       setIsAuthReady(true);

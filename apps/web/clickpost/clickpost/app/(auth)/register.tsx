@@ -42,7 +42,7 @@ export default function RegisterScreen() {
         Alert.alert('Signup Failed', error.message);
       } else {
         Alert.alert('Success', 'Check your email for verification link!');
-        router.replace('/(auth)/login');
+        router.replace('/');
       }
     } catch (err) {
       console.error(err);
@@ -102,7 +102,7 @@ export default function RegisterScreen() {
 
           <Animated.View entering={FadeIn.delay(600)} style={styles.footer}>
             <ThemedText>{t('auth.hasAccount')} </ThemedText>
-            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+            <TouchableOpacity onPress={() => router.push('/')}>
               <ThemedText type="link" style={styles.linkText}>{t('auth.login')}</ThemedText>
             </TouchableOpacity>
           </Animated.View>
