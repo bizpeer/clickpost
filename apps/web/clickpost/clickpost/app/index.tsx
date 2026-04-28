@@ -78,6 +78,9 @@ export default function LandingPage() {
         } else {
           Alert.alert('로그인 실패', error.message);
         }
+      } else {
+        setShowLogin(false);
+        router.replace('/(tabs)');
       }
     } catch (err) {
       Alert.alert('오류', '예기치 않은 오류가 발생했습니다.');
