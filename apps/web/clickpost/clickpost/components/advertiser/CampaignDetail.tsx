@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Image } from 'react-native';
 import { CampaignService } from '../../services/CampaignService';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
-import { ThemedText } from '../themed-text';
-import { ThemedView } from '../themed-view';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { supabase } from '../../services/SupabaseClient';
 
 const { width } = Dimensions.get('window');
 const isDesktop = width > 1024;
@@ -35,7 +36,7 @@ export function CampaignDetail({ campaignId, onBack }: CampaignDetailProps) {
         setStats(statsData);
 
         // Fetch scripts associated with this campaign
-        const { data: scriptsData, error: sError } = await (CampaignService as any).supabase
+        const { data: scriptsData, error: sError } = await supabase
           .from('campaign_scripts')
           .select('*')
           .eq('campaign_id', campaignId);

@@ -26,7 +26,7 @@ export function CampaignBuilder() {
         setAdvertiserId(session.user.id);
       } else {
         // No session found, redirect to login
-        router.replace('/(auth)/login');
+        router.replace('/');
       }
     };
     fetchUser();
