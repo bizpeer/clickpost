@@ -32,6 +32,7 @@ export default function LandingPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Background Animation
   const blob1Pos = useSharedValue(0);
@@ -65,8 +66,9 @@ export default function LandingPage() {
   }));
 
   const handleLogin = async () => {
+    setErrorMsg('');
     if (!email || !password) {
-      Alert.alert('오류', '이메일과 비밀번호를 모두 입력해주세요.');
+      setErrorMsg('이메일과 비밀번호를 모두 입력해주세요.');
       return;
     }
     setLoading(true);
@@ -74,16 +76,16 @@ export default function LandingPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          Alert.alert('로그인 실패', '비밀번호를 확인하세요.');
+          setErrorMsg('로그인 실패: 이메일 또는 비밀번호를 확인하세요.');
         } else {
-          Alert.alert('로그인 실패', error.message);
+          setErrorMsg('로그인 실패: ' + error.message);
         }
       } else {
         setShowLogin(false);
         router.replace('/(tabs)');
       }
     } catch (err) {
-      Alert.alert('오류', '예기치 않은 오류가 발생했습니다.');
+      setErrorMsg('예기치 않은 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -242,6 +244,12 @@ export default function LandingPage() {
                 secureTextEntry
                 style={{ marginBottom: 24 }}
               />
+              
+              {errorMsg ? (
+                <ThemedText style={{ color: '#ef4444', fontSize: 13, marginBottom: 16, textAlign: 'center' }}>
+                  {errorMsg}
+                </ThemedText>
+              ) : null}
 
               <TouchableOpacity 
                 style={[styles.loginButton, loading && { opacity: 0.7 }]} 
